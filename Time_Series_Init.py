@@ -42,9 +42,9 @@ def get_stable_array(begin, end, db, x, y, Hour):
         del g
 
     _w1 = 2 if x == 0 else 0
-    _w2 = w-3 if x == 12 else w-1
+    _w2 = w-4 if x == 12 else w-2
     _l1 = 2 if y == 0 else 0
-    _l2 = l-3 if y == 12 else l-1
+    _l2 = l-4 if y == 12 else l-2
     stable_arrays = np.zeros((2, w, l))
 
     for _x in iter(range(_w1, _w2)):
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     _in_dir = '/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G_Testing/'
     _out_dir = '/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G_Testing_PFires/'
     os.chdir(_in_dir)
-    generate_ts_data(7, 9, '20160101', _out_dir)
+    generate_ts_data(7, 9, '20160106', _out_dir, duration=30, hour='05')
     # for _x in iter(range(SUB)):
     #     for _y in iter(range(SUB)):
     #         subs = _x.__str__().zfill(2) + _y.__str__().zfill(2) + '/'

@@ -22,16 +22,16 @@ def __HDF_Init__(_in_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/DATA/hdf
                  _geo_dir='/home/lzy/figs/NOM_ITG_2288_2288(0E0N)_LE.dat'):
     SUB = 13
     os.chdir(_in_dir)
-    list_of_aims = sorted(glob.glob("FY2G*2015*.hdf"))
+    list_of_aims = sorted(glob.glob("FY2G*2016010*.hdf"))
     hdfgdal = gdal.Open(list_of_aims[0])
     band1fygdal = gdal.Open(hdfgdal.GetSubDatasets()[6][0])
-    band2fygdal = gdal.Open(hdfgdal.GetSubDatasets()[7][0])
-    band3fygdal = gdal.Open(hdfgdal.GetSubDatasets()[8][0])
-    band4fygdal = gdal.Open(hdfgdal.GetSubDatasets()[9][0])
-    band5fygdal = gdal.Open(hdfgdal.GetSubDatasets()[10][0])
-    band6fygdal = gdal.Open(hdfgdal.GetSubDatasets()[12][0])
+    # band2fygdal = gdal.Open(hdfgdal.GetSubDatasets()[7][0])
+    # band3fygdal = gdal.Open(hdfgdal.GetSubDatasets()[8][0])
+    # band4fygdal = gdal.Open(hdfgdal.GetSubDatasets()[9][0])
+    # band5fygdal = gdal.Open(hdfgdal.GetSubDatasets()[10][0])
+    # band6fygdal = gdal.Open(hdfgdal.GetSubDatasets()[12][0])
 
-    WID = band1fygdal.RasterXSize
+    WID = band1fygdal.RasterXSize221
     LEN = band1fygdal.RasterYSize
     BDS = 6
     l = LEN / SUB
