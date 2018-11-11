@@ -24,9 +24,9 @@ def cal_values(cal_index, data_array):
     return out_data
 
 
-def __HDF_Init__(_in_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/DATA/hdf/',
-                 _out_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G_Testing/',
-                 _geo_dir='/home/lzy/figs/NOM_ITG_2288_2288(0E0N)_LE.dat'):
+def __HDF_Init__(_in_dir='/home2/FY2G/', ##'/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/DATA/hdf/',
+                 _out_dir='/home6/FY2G/subsets/', ##'/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G_Testing/',
+                 _geo_dir='/home2/FY2G/NOM_ITG_2288_2288(0E0N)_LE/NOM_ITG_2288_2288(0E0N)_LE.dat'): ## '/home/lzy/figs/NOM_ITG_2288_2288(0E0N)_LE.dat'):
     SUB = 13
     os.chdir(_in_dir)
     list_of_aims = sorted(glob.glob("FY2G*2016011*.hdf"))
