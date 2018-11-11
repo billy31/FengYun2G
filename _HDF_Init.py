@@ -17,12 +17,19 @@ import _Read_Init
 import matplotlib.pyplot as plt
 
 
+def cal_values(cal_index, data_array):
+    out_data = np.zeros(data_array.shape, dtype=np.float32)
+    for i, cal in enumerate(cal_index[0]):
+        out_data[np.where(data_array == i)] = cal_index[0, i]
+    return out_data
+
+
 def __HDF_Init__(_in_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/DATA/hdf/',
                  _out_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G_Testing/',
                  _geo_dir='/home/lzy/figs/NOM_ITG_2288_2288(0E0N)_LE.dat'):
     SUB = 13
     os.chdir(_in_dir)
-    list_of_aims = sorted(glob.glob("FY2G*2016010*.hdf"))
+    list_of_aims = sorted(glob.glob("FY2G*2016011*.hdf"))
     hdfgdal = gdal.Open(list_of_aims[0])
     band1fygdal = gdal.Open(hdfgdal.GetSubDatasets()[6][0])
     # band2fygdal = gdal.Open(hdfgdal.GetSubDatasets()[7][0])
@@ -31,7 +38,7 @@ def __HDF_Init__(_in_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/DATA/hdf
     # band5fygdal = gdal.Open(hdfgdal.GetSubDatasets()[10][0])
     # band6fygdal = gdal.Open(hdfgdal.GetSubDatasets()[12][0])
 
-    WID = band1fygdal.RasterXSize221
+    WID = band1fygdal.RasterXSize
     LEN = band1fygdal.RasterYSize
     BDS = 6
     l = LEN / SUB
@@ -56,8 +63,10 @@ def __HDF_Init__(_in_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/DATA/hdf
             # Read full disk into data
             for band in iter(range(BDS)):
                 if band != 5:
+                    calgdal = gdal.Open(hdfgdal.GetSubDatasets()[band][0])
                     fygdal = gdal.Open(hdfgdal.GetSubDatasets()[6+band][0])
-                    full_disk[band] = fygdal.GetRasterBand(1).ReadAsArray()
+                    full_disk[band] = cal_values(calgdal.GetRasterBand(1).ReadAsArray(),
+                                                 fygdal.GetRasterBand(1).ReadAsArray())
                     del fygdal
                 else:
                     if cloud_mask:
