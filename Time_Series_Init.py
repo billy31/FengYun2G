@@ -23,13 +23,13 @@ import matplotlib.pyplot as plt
 from Revision_FY2G import _Read_Init
 
 
-def get_stable_array(begin, end, db, x, y, Hour):
+def get_stable_array(begin, end, db, x, y, Hour, duration):
     aim_T0 = db[end].split('_')[4]+'_'+db[end].split('_')[5]
     aim_T1 = datetime.datetime.strptime(aim_T0, '%Y%m%d_%H%M')
-    total_dlt = datetime.timedelta(days=10)
-    existing_list = np.zeros(240)
-    mir = np.zeros((10*24, w, l))
-    tir = np.zeros((10*24, w, l))
+    total_dlt = datetime.timedelta(days=duration)
+    existing_list = np.zeros(24 * duration)
+    mir = np.zeros((24 * duration, w, l))
+    tir = np.zeros((24 * duration, w, l))
     for _iD in iter(db[begin:end]):
         obj_T0 = _iD.split('_')[4]+'_' + _iD.split('_')[5]
         obj_T1 = datetime.datetime.strptime(obj_T0, '%Y%m%d_%H%M')
@@ -42,16 +42,16 @@ def get_stable_array(begin, end, db, x, y, Hour):
         del g
 
     _w1 = 2 if x == 0 else 0
-    _w2 = w-4 if x == 12 else w-2
+    _w2 = w-2 if x == 12 else w
     _l1 = 2 if y == 0 else 0
-    _l2 = l-4 if y == 12 else l-2
+    _l2 = l-2 if y == 12 else l
     stable_arrays = np.zeros((2, w, l))
 
     for _x in iter(range(_w1, _w2)):
         for _y in iter(range(_l1, _l2)):
             value_matrix = np.zeros((15, 24))
             value_ori = mir[:, _x, _y]
-            # value_tir =
+            value_tir = tir[:, _x, _y]
             time_list = []
             for id_time, non_zero in enumerate(existing_list):
                 if non_zero and 200 <= value_ori[id_time] <= 350:
@@ -129,7 +129,7 @@ def generate_ts_data(x, y, date, path, duration=10, hour='*'):
                 print 'No this file!'
                 print e.__str__()
             else:
-                stable_array = get_stable_array(_should_check, aim_index+1, total_list, x, y, H)
+                stable_array = get_stable_array(_should_check, aim_index+1, total_list, x, y, H, duration)
                 _Read_Init.arr2TIFF(stable_array[0, :, :], 1)
                 print 1
         else:
