@@ -19,7 +19,10 @@ import os
 import gdal
 import numpy as np
 from collections import Iterable as IT
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+# % matplotlib qt
 from Revision_FY2G import _Read_Init
 
 
@@ -27,7 +30,7 @@ def get_stable_array(begin, end, db, x, y, Hour, duration):
     aim_T0 = db[end].split('_')[4]+'_'+db[end].split('_')[5]
     aim_T1 = datetime.datetime.strptime(aim_T0, '%Y%m%d_%H%M')
     total_dlt = datetime.timedelta(days=duration)
-    existing_list = np.zeros(24 * duration)
+    # existing_list = np.zeros(24 * duration)
     mir = np.zeros((24 * duration, w, l))
     tir = np.zeros((24 * duration, w, l))
     for _iD in iter(db[begin:end]):
@@ -35,7 +38,7 @@ def get_stable_array(begin, end, db, x, y, Hour, duration):
         obj_T1 = datetime.datetime.strptime(obj_T0, '%Y%m%d_%H%M')
         dlt_T = aim_T1 - obj_T1
         nums_id = (total_dlt - dlt_T).days * 24 + (total_dlt - dlt_T).seconds / 3600
-        existing_list[nums_id] = 1
+        # existing_list[nums_id] = 1
         g = gdal.Open(_iD)
         tir[nums_id, :, :] = g.GetRasterBand(1).ReadAsArray()
         mir[nums_id, :, :] = g.GetRasterBand(4).ReadAsArray()
@@ -45,36 +48,43 @@ def get_stable_array(begin, end, db, x, y, Hour, duration):
     _w2 = w-2 if x == 12 else w
     _l1 = 2 if y == 0 else 0
     _l2 = l-2 if y == 12 else l
-    stable_arrays = np.zeros((2, w, l))
+    stable_arrays = np.zeros((w, l))
 
     for _x in iter(range(_w1, _w2)):
         for _y in iter(range(_l1, _l2)):
-            value_matrix = np.zeros((15, 24))
-            value_ori = mir[:, _x, _y]
+            # Mvalue_matrix = np.zeros((15, 24))
+            # Tvalue_matrix = np.zeros((15, 24))
+            value_mir = mir[:, _x, _y]
             value_tir = tir[:, _x, _y]
-            time_list = []
-            for id_time, non_zero in enumerate(existing_list):
-                if non_zero and 200 <= value_ori[id_time] <= 350:
-                    time = id_time % 24
-                    if time == Hour:
-                        time_list.append(id_time)
-                    valuex = (value_ori[id_time] - 200) / 10
-                    value_matrix[int(valuex), time] += 1
+            low_end_tir = np.mean(value_tir[np.nonzero(value_tir)])
+            stable_arrays[_x, _y] = np.mean(value_mir[np.where(value_tir > low_end_tir)])
+            # time_list = []
+            # for id_time, non_zero in enumerate(existing_list):
+            #     if non_zero and 200 <= value_mir[id_time] <= 350:
+            #         time = id_time % 24
+            #         if time == Hour:
+            #             time_list.append(id_time)
+            #         valuex = (value_mir[id_time] - 200) / 10
+            #         Mvalue_matrix[int(valuex), time] += 1
+            #         valuex = (value_tir[id_time] - 200) / 10
+            #         Tvalue_matrix[int(valuex), time] += 1
 
-            sort_value_frequency = [sum(value_matrix[ranges, :]) for ranges in range(15)]
-            max_frequency = sort_value_frequency.index(max(sort_value_frequency))
-            mean_value1 = np.mean(value_ori[np.logical_and(value_ori >= max_frequency*10+200,
-                                                           value_ori < max_frequency*10+210)])
 
-            value_BYTIME = np.argmax(value_matrix[:, Hour])
-            time_list_value = value_ori[time_list]
-            mean_value2 = np.mean(time_list_value[np.logical_and(time_list_value >= value_BYTIME*10+200,
-                                                                 time_list_value < value_BYTIME*10+210)])
+            # sort_value_frequency = [sum(value_matrix[ranges, :]) for ranges in range(15)]
+            # max_frequency = sort_value_frequency.index(max(sort_value_frequency))
+            # mean_value1 = np.mean(value_ori[np.logical_and(value_ori >= max_frequency*10+200,
+            #                                                value_ori < max_frequency*10+210)])
+            #
+            # value_BYTIME = np.argmax(value_matrix[:, Hour])
+            # time_list_value = value_ori[time_list]
+            # mean_value2 = np.mean(time_list_value[np.logical_and(time_list_value >= value_BYTIME*10+200,
+            #                                                      time_list_value < value_BYTIME*10+210)])
+            #
+            # stable_arrays[0, _x, _y] = mean_value1
+            # stable_arrays[1, _x, _y] = mean_value2
 
-            stable_arrays[0, _x, _y] = mean_value1
-            stable_arrays[1, _x, _y] = mean_value2
 
-            del value_matrix
+            # del Mvalue_matrix, Tvalue_matrix
             # for _x in iter(range(w)):
             #     for _y in iter(range(l)):
 
@@ -130,7 +140,8 @@ def generate_ts_data(x, y, date, path, duration=10, hour='*'):
                 print e.__str__()
             else:
                 stable_array = get_stable_array(_should_check, aim_index+1, total_list, x, y, H, duration)
-                _Read_Init.arr2TIFF(stable_array[0, :, :], 1)
+                _Read_Init.arr2TIFF(stable_array, trans, proj, _out_dir +
+                                    'FY2G_FDI_ALL_NOM_' + to_process + '_' + subs + '_Stable_MIR.tif', 1)
                 print 1
         else:
             print 'No enough data to process'
@@ -139,26 +150,33 @@ def generate_ts_data(x, y, date, path, duration=10, hour='*'):
     return 1
 
 
+trans = (0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
+proj = 'PROJCS["New_Projected_Coordinate_System",' \
+       'GEOGCS["GCS_New_Geographic_Coordinate_System",' \
+       'DATUM["WGS_1984",SPHEROID["WGS_84",6378137.0,298.257223563]],' \
+       'PRIMEM["<custom>",104.5],UNIT["<custom>",0.048952]],' \
+       'PROJECTION["Lambert_Conformal_Conic_2SP"],' \
+       'PARAMETER["False_Easting",104.5],' \
+       'PARAMETER["False_Northing",0.0],' \
+       'PARAMETER["Central_Meridian",104.5],' \
+       'PARAMETER["Standard_Parallel_1",60.0],' \
+       'PARAMETER["Standard_Parallel_2",60.0],' \
+       'PARAMETER["Scale_Factor",1.0],' \
+       'PARAMETER["Latitude_Of_Origin",0.0],' \
+       'UNIT["<custom>",5000.0]]'
+
 if __name__ == '__main__':
 
-    trans = (0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
-    proj = 'PROJCS["New_Projected_Coordinate_System",' \
-           'GEOGCS["GCS_New_Geographic_Coordinate_System",' \
-           'DATUM["WGS_1984",SPHEROID["WGS_84",6378137.0,298.257223563]],' \
-           'PRIMEM["<custom>",104.5],UNIT["<custom>",0.048952]],' \
-           'PROJECTION["Lambert_Conformal_Conic_2SP"],' \
-           'PARAMETER["False_Easting",104.5],' \
-           'PARAMETER["False_Northing",0.0],' \
-           'PARAMETER["Central_Meridian",104.5],' \
-           'PARAMETER["Standard_Parallel_1",60.0],' \
-           'PARAMETER["Standard_Parallel_2",60.0],' \
-           'PARAMETER["Scale_Factor",1.0],' \
-           'PARAMETER["Latitude_Of_Origin",0.0],' \
-           'UNIT["<custom>",5000.0]]'
-    _in_dir = '/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G_Testing/'
-    _out_dir = '/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G_Testing_PFires/'
+    # _in_dir = '/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G_Testing/'
+    # _out_dir = '/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G_Testing_PFires/'
+    _in_dir = '/home6/FY2G/subsets/'
     os.chdir(_in_dir)
-    generate_ts_data(7, 9, '20160106', _out_dir, duration=30, hour='05')
+    _out_dir = '/home6/FY2G/subsets_stable/'
+    if os.path.exists(_out_dir) is False:
+        os.mkdir(_out_dir)
+    generate_ts_data(7, 9, '20151220', _out_dir, duration=10, hour='03')
+
+    
     # for _x in iter(range(SUB)):
     #     for _y in iter(range(SUB)):
     #         subs = _x.__str__().zfill(2) + _y.__str__().zfill(2) + '/'

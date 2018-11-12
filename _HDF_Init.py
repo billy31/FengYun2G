@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 
 def cal_values(cal_index, data_array):
-    out_data = np.zeros(data_array.shape, dtype=np.float32)
+    out_data = np.zeros(data_array.shape, dtype=np.float)
     for i, cal in enumerate(cal_index[0]):
         out_data[np.where(data_array == i)] = cal_index[0, i]
     return out_data
@@ -29,7 +29,7 @@ def __HDF_Init__(_in_dir='/home2/FY2G/', ##'/media/lzy/TOSHIBA WU FY2G_MERSI_Lan
                  _geo_dir='/home2/FY2G/NOM_ITG_2288_2288(0E0N)_LE/NOM_ITG_2288_2288(0E0N)_LE.dat'): ## '/home/lzy/figs/NOM_ITG_2288_2288(0E0N)_LE.dat'):
     SUB = 13
     os.chdir(_in_dir)
-    list_of_aims = sorted(glob.glob("FY2G*2016011*.hdf"))
+    list_of_aims = sorted(glob.glob("FY2G*2015122*.hdf"))
     hdfgdal = gdal.Open(list_of_aims[0])
     band1fygdal = gdal.Open(hdfgdal.GetSubDatasets()[6][0])
     # band2fygdal = gdal.Open(hdfgdal.GetSubDatasets()[7][0])
