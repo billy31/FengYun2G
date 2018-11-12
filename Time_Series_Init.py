@@ -176,7 +176,7 @@ if __name__ == '__main__':
         os.mkdir(_out_dir)
     generate_ts_data(7, 9, '20151220', _out_dir, duration=10, hour='03')
 
-    
+
     # for _x in iter(range(SUB)):
     #     for _y in iter(range(SUB)):
     #         subs = _x.__str__().zfill(2) + _y.__str__().zfill(2) + '/'
