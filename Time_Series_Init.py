@@ -26,6 +26,15 @@ import matplotlib.pyplot as plt
 from Revision_FY2G import _Read_Init
 
 
+def generate_file_name(x, y, date, hour, subfix=''):
+    subs = x.__str__().zfill(2) + y.__str__().zfill(2)
+    _H = hour.__str__().zfill(2) + '00'
+    datestring_process = date + '_' + _H
+    subfix = '' if subfix == '' else '_' + subfix
+    name = 'FY2G_FDI_ALL_NOM_' + datestring_process + '_' + subs + subfix + '.tif'
+    return name
+
+
 def get_stable_array(begin, end, db, x, y, Hour, duration):
     aim_T0 = db[end].split('_')[4]+'_'+db[end].split('_')[5]
     aim_T1 = datetime.datetime.strptime(aim_T0, '%Y%m%d_%H%M')
@@ -100,6 +109,7 @@ def check_exist(aim, db, sub, duration=10):
     :param duration: length of days
     :return: data exist or not
     '''
+    # datetime.date.strftime()
     _d = datetime.datetime.strptime(aim, '%Y%m%d_%H%M')
     for hour in iter([0, 1, 2]):
         _pd = _d - datetime.timedelta(days=duration, hours=hour)
@@ -109,7 +119,7 @@ def check_exist(aim, db, sub, duration=10):
     return 0
 
 
-def generate_ts_data(x, y, date, path, duration=10, hour='*'):
+def generate_ts_data(db, x, y, date, duration=10, hour=0):
     '''
     :param x: location indicators | east-west
     :param y: location indicators | north-south
@@ -119,35 +129,33 @@ def generate_ts_data(x, y, date, path, duration=10, hour='*'):
     :param hour: aim hour of the day          | default: * (means all day)
     :return:
     '''
+    total_list = db
     subs = x.__str__().zfill(2) + y.__str__().zfill(2)
     try:
         os.chdir(_in_dir + subs + '/')
     except:
         print "No this directory"
         return
-    hours = iter(range(24)) if hour == '*' else iter([hour])
-    total_list = sorted(glob.glob("FY2G_FDI*00_" + subs + ".tif"))
-    for H in hours:
-        _should_check = -1
-        _H = H.__str__().zfill(2) + '00'
-        to_process = date + '_' + _H
-        _should_check = check_exist(to_process, total_list, subs, duration)
-        if _should_check >= 0:
-            try:
-                aim_index = total_list.index('FY2G_FDI_ALL_NOM_' + to_process + '_' + subs + '.tif') - 1
-            except Exception as e:
-                print 'No this file!'
-                print e.__str__()
-            else:
-                stable_array = get_stable_array(_should_check, aim_index+1, total_list, x, y, H, duration)
-                _Read_Init.arr2TIFF(stable_array, trans, proj, _out_dir +
-                                    'FY2G_FDI_ALL_NOM_' + to_process + '_' + subs + '_Stable_MIR.tif', 1)
-                print 1
+    _H = hour.__str__().zfill(2) + '00'
+    _should_check = -1
+    to_process = date + '_' + _H
+    _should_check = check_exist(to_process, total_list, subs, duration)
+    if _should_check >= 0:
+        try:
+            aim_index = total_list.index(generate_file_name(x, y, date, hour)) - 1
+        except Exception as e:
+            print 'No this file!'
+            print e.__str__()
+            return 0
         else:
-            print 'No enough data to process'
-            continue
+            stable_array = get_stable_array(_should_check, aim_index+1, total_list, x, y, hour, duration)
 
-    return 1
+            print 'Generated!'
+            return stable_array
+    else:
+        print 'No enough data to process'
+
+    return 0
 
 
 trans = (0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
@@ -171,18 +179,79 @@ if __name__ == '__main__':
     # _out_dir = '/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G_Testing_PFires/'
     _in_dir = '/home6/FY2G/subsets/'
     os.chdir(_in_dir)
+
     _out_dir = '/home6/FY2G/subsets_stable/'
     if os.path.exists(_out_dir) is False:
         os.mkdir(_out_dir)
-    generate_ts_data(7, 9, '20151220', _out_dir, duration=10, hour='03')
 
+    ## single step
 
-    # for _x in iter(range(SUB)):
-    #     for _y in iter(range(SUB)):
-    #         subs = _x.__str__().zfill(2) + _y.__str__().zfill(2) + '/'
-    #         os.chdir(_in_dir + subs)
-    #         list_of_aims = sorted(glob.glob("FY2G_FDI***.tif"))
-    #         fygdal = gdal.Open(list_of_aims[0])
-    #         print 1
+    # date = '20151220'
+    # hour = '03'
+    # x = 7
+    # y = 9
+    # stable_value_mir = generate_ts_data(x, y, date, _out_dir, duration=10, hour=hour)
+    # if type(stable_value_mir) is not np.int:
+    #     g = gdal.Open(generate_file_name(x, y, date, hour))
+    #     obs_TIR = g.GetRasterBand(1).ReadAsArray()
+    #     obs_MIR = g.GetRasterBand(4).ReadAsArray()
+    #
+    #     value_MO_MS = obs_MIR - stable_value_mir
+    #     value_MS_TO = stable_value_mir - obs_TIR
+    #
+    #     value_X = value_MO_MS - value_MS_TO
+    #     print 1
+    #
+    #
+    # # for _x in iter(range(SUB)):
+    # #     for _y in iter(range(SUB)):
+    # #         subs = _x.__str__().zfill(2) + _y.__str__().zfill(2) + '/'
+    # #         os.chdir(_in_dir + subs)
+    # #         list_of_aims = sorted(glob.glob("FY2G_FDI***.tif"))
+    # #         fygdal = gdal.Open(list_of_aims[0])
+    # #         print 1
+
+    # Multiple steps
+    begindate = datetime.datetime(2015, 12, 20)
+    flag = 1
+    hour = 0
+    while flag:
+        date = begindate + datetime.timedelta(hours=hour)
+        print date
+        for x in iter(range(13)):
+            for y in iter(range(13)):
+                print x, y
+                subs = x.__str__().zfill(2) + y.__str__().zfill(2)
+                os.chdir(_in_dir + subs + '/')
+                total_list = sorted(glob.glob("FY2G_FDI*" + subs + ".tif"))
+                outdir = _out_dir + subs + '/'
+                if os.path.exists(outdir) is False:
+                    os.mkdir(outdir)
+                stable_value_mir = generate_ts_data(total_list, x, y, date.strftime("%Y%m%d"), duration=10, hour=date.hour)
+                if type(stable_value_mir) is np.int:
+                    flag = stable_value_mir
+                else:
+                    g = gdal.Open(generate_file_name(x, y, date.strftime("%Y%m%d"), hour=date.hour))
+                    obs_TIR = g.GetRasterBand(1).ReadAsArray()
+                    obs_MIR = g.GetRasterBand(4).ReadAsArray()
+
+                    value_MO_MS = obs_MIR - stable_value_mir
+                    value_MS_TO = stable_value_mir - obs_TIR
+
+                    value_X = value_MO_MS - value_MS_TO
+                    stablemirName = outdir + \
+                                    generate_file_name(x, y, date.strftime("%Y%m%d"), date.hour, 'Stable_MIR')
+                    deltaName = outdir + \
+                                generate_file_name(x, y, date.strftime("%Y%m%d"), date.hour, 'Delta_MOMS_MSTO')
+
+                    if os.path.exists(stablemirName) is False:
+                        _Read_Init.arr2TIFF(stable_value_mir, trans, proj, stablemirName, 1)
+                    else:
+                        print "Exist!"
+                    if os.path.exists(deltaName) is False:
+                        _Read_Init.arr2TIFF(value_X, trans, proj, deltaName, 1)
+                    else:
+                        print "Exist!"
+        hour += 1
 
 
