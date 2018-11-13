@@ -23,8 +23,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 # % matplotlib qt
-from Revision_FY2G import _Read_Init
-
+# from Revision_FY2G import _Read_Init
+import _Read_Init
 
 def generate_file_name(x, y, date, hour, subfix=''):
     subs = x.__str__().zfill(2) + y.__str__().zfill(2)
@@ -230,6 +230,7 @@ if __name__ == '__main__':
                 stable_value_mir = generate_ts_data(total_list, x, y, date.strftime("%Y%m%d"), duration=10, hour=date.hour)
                 if type(stable_value_mir) is np.int:
                     flag = stable_value_mir
+                    break
                 else:
                     g = gdal.Open(generate_file_name(x, y, date.strftime("%Y%m%d"), hour=date.hour))
                     obs_TIR = g.GetRasterBand(1).ReadAsArray()
