@@ -39,23 +39,33 @@ if __name__ == '__main__':
         print date
         for x in iter([7,8,9]):
             for y in iter([7,8,9]):
-                print x, y
                 subs = x.__str__().zfill(2) + y.__str__().zfill(2)
                 os.chdir(stable_dir + subs + '/')
-                origin_dirsub = origin_dir + subs + '/'
                 filename = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + name_sub1
                 if os.path.exists(filename) is False:
                     print 'No this file!'
                 else:
                     g = gdal.Open(filename)
                     delta = g.GetRasterBand(1).ReadAsArray()
-                    LEN, WID = delta.RasterYSize, delta.RasterXSize
-                    locs = np.where(delta)
-                    if locs[0].__len__() > 0:
-                        print x, y, ':', locs
-                    else:
-                        print x, y, ': No potential fires'
+                    # LEN, WID = g.RasterYSize, g.RasterXSize
+                    locs = np.where(delta > 0)
+                    len_of_locs = locs[0].__len__()
+                    if len_of_locs > 0:
+                        print '%2d %d : %3d initial potential fire pixels' % (x, y, len_of_locs)
+                        filename_origin = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '.tif'
+                        origin_dirsub = origin_dir + subs + '/'
+                        g_origin = gdal.Open(origin_dirsub + filename_origin)
+                        tir = g_origin.GetRasterBand(1).ReadAsArray()
+                        mir = g_origin.GetRasterBand(4).ReadAsArray()
 
+                        for i in iter(range(len_of_locs)):
+                            _x, _y = locs[0][i], locs[1][i]
+                            print "Delta: %.3f | MIR: %.3f  TIR: %.3f" % (delta[_x, _y], mir[_x, _y], tir[_x, _y])
+
+                    else:
+                        print '%2d %d : No potential fires' % (x, y)
+
+                    del g
 
         # hour += 1
     print 'End'
