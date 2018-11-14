@@ -24,7 +24,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 # % matplotlib qt
 # from Revision_FY2G import _Read_Init
-import _Read_Init
+from common_functions import arr2TIFF
+
 
 def generate_file_name(x, y, date, hour, subfix=''):
     subs = x.__str__().zfill(2) + y.__str__().zfill(2)
@@ -246,11 +247,11 @@ if __name__ == '__main__':
                                 generate_file_name(x, y, date.strftime("%Y%m%d"), date.hour, 'Delta_MOMS_MSTO')
 
                     if os.path.exists(stablemirName) is False:
-                        _Read_Init.arr2TIFF(stable_value_mir, trans, proj, stablemirName, 1)
+                        arr2TIFF(stable_value_mir, trans, proj, stablemirName, 1)
                     else:
                         print "Exist!"
                     if os.path.exists(deltaName) is False:
-                        _Read_Init.arr2TIFF(value_X, trans, proj, deltaName, 1)
+                        arr2TIFF(value_X, trans, proj, deltaName, 1)
                     else:
                         print "Exist!"
         hour += 1

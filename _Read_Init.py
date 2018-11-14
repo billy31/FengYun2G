@@ -15,20 +15,7 @@ import numpy as np
 from collections import Iterable as IT
 
 
-def arr2TIFF(im_data, im_geotrans, im_proj, im_file, im_bands):
-    datatype = gdal.GDT_Float32
-    im_height, im_width = im_data[0].shape if im_bands>1 else im_data.shape
-    driver = gdal.GetDriverByName("GTiff")
-    dataset = driver.Create(im_file, im_width, im_height, im_bands, datatype)  # 创建文件
-    if dataset is not None:
-        dataset.SetGeoTransform(im_geotrans)  # 写入仿射变换参数
-        dataset.SetProjection(im_proj)  # 写入投影
-    for i in range(im_bands):
-        if im_bands==1:
-            dataset.GetRasterBand(1).WriteArray(im_data)
-        else:
-            dataset.GetRasterBand(i+1).WriteArray(im_data[i])
-    del dataset
+from common_functions import arr2TIFF
 
 
 def __Init__(_in_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/NONGLT/',
@@ -89,7 +76,7 @@ def __Init__(_in_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/NONGLT/',
                                         + _x.__str__().zfill(2) + _y.__str__().zfill(2) + '_geo.dat'
                             subsets_geo = np.zeros((w + 4, l + 4))
                             subsets_geo[r1:l1, t1:b1] = geoarr[right:left, top:bottom]
-                            _Read_Init.arr2TIFF(subsets_geo, trans, proj, _out_name_geo, 1)
+                            arr2TIFF(subsets_geo, trans, proj, _out_name_geo, 1)
                             flag_or_geo_files = False
 
                     arr2TIFF(subsets, trans, proj, _out_name, 6)
