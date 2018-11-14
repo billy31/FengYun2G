@@ -45,3 +45,6 @@ def arr2TIFF(im_data, im_geotrans, im_proj, im_file, im_bands):
         else:
             dataset.GetRasterBand(i+1).WriteArray(im_data[i])
     del dataset
+
+if __name__ == '__main__':
+    where_are_the_locations()
