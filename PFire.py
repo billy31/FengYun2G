@@ -42,15 +42,15 @@ if __name__ == '__main__':
     flag = 1
     hour = 0
     pd_records = pd.DataFrame([])
-    pd_file = '/home6/FY2G/pfire_list.csv'
+    pd_file = '/home6/FY2G/pfire_list_China.csv'
     # while flag:
     for hour in iter(range(24)):
         date = begindate + datetime.timedelta(hours=hour)
         name_pre = 'FY2G_FDI_ALL_NOM_'
         name_sub1 = '_Delta_MOMS_MSTO.tif'
         print date
-        for x in iter(range(13)):
-            for y in iter(range(13)):
+        for x in iter([1,2,3,4,5]):
+            for y in iter([6,7,8,9,10]):
                 subs = x.__str__().zfill(2) + y.__str__().zfill(2)
                 os.chdir(stable_dir + subs + '/')
                 filename = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + name_sub1
@@ -65,7 +65,7 @@ if __name__ == '__main__':
                     locs = np.where(delta > 0)
                     len_of_locs = locs[0].__len__()
                     if len_of_locs > 0:
-                        print '%2d %d : %3d initial potential fire pixels' % (x, y, len_of_locs)
+                        print '%2d %2d : %3d initial potential fire pixels' % (x, y, len_of_locs)
                         filename_origin = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '.tif'
                         origin_dirsub = origin_dir + subs + '/'
                         g_origin = gdal.Open(origin_dirsub + filename_origin)
