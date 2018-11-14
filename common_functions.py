@@ -27,8 +27,8 @@ def where_are_the_locations():
             if longitude[x1, y1] >= 300 or longitude[x2, y2] >= 300:
                 continue
             else:
-                print 'north:%.3f\tsouth:%.3f\t|\twest:%.3f\teast:%.3f' % (latitude[x1, y1], latitude[x2, y2],
-                                                                           longitude[x1, y1], longitude[x2, y2])
+                print '%2d %2d\t| north:%.3f\tsouth:%.3f\t| west:%.3f\teast:%.3f' % \
+                      (x, y, latitude[x1, y1], latitude[x2, y2], longitude[x1, y1], longitude[x2, y2])
 
 
 def arr2TIFF(im_data, im_geotrans, im_proj, im_file, im_bands):
