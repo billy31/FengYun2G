@@ -37,8 +37,8 @@ if __name__ == '__main__':
         name_pre = 'FY2G_FDI_ALL_NOM_'
         name_sub1 = '_Delta_MOMS_MSTO.tif'
         print date
-        for x in iter([7,8,9]):
-            for y in iter([7,8,9]):
+        for x in iter(range(13)):
+            for y in iter(range(13)):
                 subs = x.__str__().zfill(2) + y.__str__().zfill(2)
                 os.chdir(stable_dir + subs + '/')
                 filename = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + name_sub1
@@ -60,7 +60,11 @@ if __name__ == '__main__':
 
                         for i in iter(range(len_of_locs)):
                             _x, _y = locs[0][i], locs[1][i]
-                            print "Delta: %.3f | MIR: %.3f  TIR: %.3f" % (delta[_x, _y], mir[_x, _y], tir[_x, _y])
+                            d1 = delta[_x, _y], m1 = mir[_x, _y], t1 = tir[_x, _y]
+                            # print "Delta: %3d | MIR: %3d  TIR: %3d" % (d1, m1, t1)
+                            d2 = m1 - t1
+                            avg_window = np.mean(mir[_x-2:_x+3, _y-2:_y+3])
+
 
                     else:
                         print '%2d %d : No potential fires' % (x, y)

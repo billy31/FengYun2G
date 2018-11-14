@@ -16,7 +16,7 @@ from collections import Iterable as IT
 
 
 def arr2TIFF(im_data, im_geotrans, im_proj, im_file, im_bands):
-    datatype = gdal.GDT_UInt16
+    datatype = gdal.GDT_Float32
     im_height, im_width = im_data[0].shape if im_bands>1 else im_data.shape
     driver = gdal.GetDriverByName("GTiff")
     dataset = driver.Create(im_file, im_width, im_height, im_bands, datatype)  # 创建文件
