@@ -90,7 +90,7 @@ if __name__ == '__main__':
                             std_mir_window = np.std(arr_MIR)
                             std_tir_window = np.std(arr_TIR)
                             std_del_window = np.std(arr_Del)
-                            pd_records = pd_records.append([[d1, m1, t1,
+                            pd_records = pd_records.append([[d1, m1, t1, d2,
                                                              avg_mir_window, avg_tir_window, avg_del_window,
                                                              std_mir_window, std_tir_window, std_del_window,
                                                              longitude_px, latitude_px]])
