@@ -65,7 +65,6 @@ if __name__ == '__main__':
                     locs = np.where(delta > 0)
                     len_of_locs = locs[0].__len__()
                     if len_of_locs > 0:
-                        print '%2d %2d : %3d initial potential fire pixels' % (x, y, len_of_locs)
                         filename_origin = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '.tif'
                         origin_dirsub = origin_dir + subs + '/'
                         g_origin = gdal.Open(origin_dirsub + filename_origin)
@@ -90,11 +89,15 @@ if __name__ == '__main__':
                             std_mir_window = np.std(arr_MIR)
                             std_tir_window = np.std(arr_TIR)
                             std_del_window = np.std(arr_Del)
-                            pd_records = pd_records.append([[d1, m1, t1, d2,
-                                                             avg_mir_window, avg_tir_window, avg_del_window,
-                                                             std_mir_window, std_tir_window, std_del_window,
-                                                             longitude_px, latitude_px]])
+                            if m1 > avg_mir_window and d2 > avg_del_window:
+                                pd_records = pd_records.append([[d1, m1, t1, d2,
+                                                                 avg_mir_window, avg_tir_window, avg_del_window,
+                                                                 std_mir_window, std_tir_window, std_del_window,
+                                                                 longitude_px, latitude_px]])
+                                count+=1
                             # print "Delta: %3d | MIR: %3d  TIR: %3d" % (d1, m1, t1)
+
+                        print '%2d %2d : %3d initial potential fire pixels' % (x, y, count)
                     else:
                         print '%2d %d : No potential fires' % (x, y)
 
