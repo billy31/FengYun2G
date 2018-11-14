@@ -71,12 +71,13 @@ if __name__ == '__main__':
                         g_origin = gdal.Open(origin_dirsub + filename_origin)
                         tir = g_origin.GetRasterBand(1).ReadAsArray()
                         mir = g_origin.GetRasterBand(4).ReadAsArray()
+                        delta_value = mir - tir
                         count = 0
                         for i in iter(range(len_of_locs)):
                             _x, _y = locs[0][i], locs[1][i]
                             longitude_px, latitude_px = longitude[_x + xadded - 2, _y + yadded -2], \
                                                         latitude[_x + xadded - 2, _y + yadded -2]
-                            d1 = delta[_x, _y], m1 = mir[_x, _y], t1 = tir[_x, _y]
+                            d1 = delta_value[_x, _y], m1 = mir[_x, _y], t1 = tir[_x, _y]
                             d2 = m1 - t1
                             arr_MIR = mir[_x-2:_x+3, _y-2:_y+3]
                             arr_TIR = tir[_x-2:_x+3, _y-2:_y+3]
