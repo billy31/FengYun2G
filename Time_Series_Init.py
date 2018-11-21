@@ -213,7 +213,7 @@ if __name__ == '__main__':
     # #         print 1
 
     # Multiple steps
-    begindate = datetime.datetime(2015, 12, 20)
+    begindate = datetime.datetime(2016, 1, 6)
     flag = 1
     hour = 0
     while flag:
