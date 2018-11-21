@@ -20,7 +20,11 @@ import matplotlib.pyplot as plt
 # from Revision_FY2G import _Read_Init
 # import _Read_Init
 from common_functions import arr2TIFF
-import pandas as pd
+from common_functions import image_preprocessing
+from common_functions import trans
+from common_functions import proj
+# import pandas as pd
+image_preprocessing()
 
 if __name__ == '__main__':
     temp_geo_dir = '/home2/FY2G/NOM_ITG_2288_2288(0E0N)_LE/'  # 'because of the error of geo files/temporally'
@@ -38,19 +42,19 @@ if __name__ == '__main__':
         os.mkdir(out_dir)
 
     # Multiple steps (SINGLE DAY VERSION)
-    begindate = datetime.datetime(2015, 12, 20)
+    begindate = datetime.datetime(2016, 1, 6)
     flag = 1
     hour = 0
-    pd_records = pd.DataFrame([])
-    pd_file = '/home6/FY2G/pfire_list_China.csv'
+    # pd_records = pd.DataFrame([])
+    # pd_file = '/home6/FY2G/pfire_list_Aust.csv'
     # while flag:
     for hour in iter(range(24)):
         date = begindate + datetime.timedelta(hours=hour)
         name_pre = 'FY2G_FDI_ALL_NOM_'
         name_sub1 = '_Delta_MOMS_MSTO.tif'
         print date
-        for x in iter([]):
-            for y in iter([6,7,8,9,10]):
+        for x in iter([7, 8, 9, 10]):
+            for y in iter([7, 8, 9, 10]):
                 subs = x.__str__().zfill(2) + y.__str__().zfill(2)
                 os.chdir(stable_dir + subs + '/')
                 filename = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + name_sub1
@@ -61,48 +65,57 @@ if __name__ == '__main__':
                     yadded = y * 176
                     g = gdal.Open(filename)
                     delta = g.GetRasterBand(1).ReadAsArray()
-                    # LEN, WID = g.RasterYSize, g.RasterXSize
-                    locs = np.where(delta > 0)
-                    len_of_locs = locs[0].__len__()
+                    req1 = 1 * np.greater(delta, 0)
+                    len_of_locs = np.sum(req1)
                     if len_of_locs > 0:
                         filename_origin = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '.tif'
                         origin_dirsub = origin_dir + subs + '/'
-                        g_origin = gdal.Open(origin_dirsub + filename_origin)
-                        tir = g_origin.GetRasterBand(1).ReadAsArray()
-                        mir = g_origin.GetRasterBand(4).ReadAsArray()
-                        delta_value = mir - tir
-                        count = 0
-                        for i in iter(range(len_of_locs)):
-                            _x, _y = locs[0][i], locs[1][i]
-                            longitude_px, latitude_px = longitude[_x + xadded - 2, _y + yadded -2], \
-                                                        latitude[_x + xadded - 2, _y + yadded -2]
-                            d1 = delta_value[_x, _y]
-                            m1 = mir[_x, _y]
-                            t1 = tir[_x, _y]
-                            d2 = m1 - t1
-                            arr_MIR = mir[_x-2:_x+3, _y-2:_y+3]
-                            arr_TIR = tir[_x-2:_x+3, _y-2:_y+3]
-                            arr_Del = delta[_x-2:_x+3, _y-2:_y+3]
-                            avg_mir_window = np.mean(arr_MIR)
-                            avg_tir_window = np.mean(arr_TIR)
-                            avg_del_window = np.mean(arr_TIR)
-                            std_mir_window = np.std(arr_MIR)
-                            std_tir_window = np.std(arr_TIR)
-                            std_del_window = np.std(arr_Del)
-                            if m1 > avg_mir_window and d2 > avg_del_window:
-                                pd_records = pd_records.append([[d1, m1, t1, d2,
-                                                                 avg_mir_window, avg_tir_window, avg_del_window,
-                                                                 std_mir_window, std_tir_window, std_del_window,
-                                                                 longitude_px, latitude_px]])
-                                count+=1
-                            # print "Delta: %3d | MIR: %3d  TIR: %3d" % (d1, m1, t1)
+                        pfires = image_preprocessing(origin_dirsub + filename_origin)
+                        req2 = 1 * np.equal(pfires, 1)
+                        req = 1 * np.equal(req1 + req2, 2)
+                        out_dir_pfire = out_dir + subs + '/'
+                        if os.path.exists(out_dir_pfire) is False:
+                            os.mkdir(out_dir_pfire)
+                        os.chdir(out_dir_pfire)
+                        outfile = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '_PFIRE.tif'
+                        arr2TIFF(req, trans, proj, outfile, 1)
 
-                        print '%2d %2d : %3d initial potential fire pixels' % (x, y, count)
+                        # g_origin = gdal.Open(origin_dirsub + filename_origin)
+                        # tir = g_origin.GetRasterBand(1).ReadAsArray()
+                        # mir = g_origin.GetRasterBand(4).ReadAsArray()
+                        # delta_value = mir - tir
+                        # count = 0
+                        # for i in iter(range(len_of_locs)):
+                        #     _x, _y = locs[0][i], locs[1][i]
+                        #     longitude_px, latitude_px = longitude[_x + xadded - 2, _y + yadded -2], \
+                        #                                 latitude[_x + xadded - 2, _y + yadded -2]
+                        #     d1 = delta_value[_x, _y]
+                        #     m1 = mir[_x, _y]
+                        #     t1 = tir[_x, _y]
+                        #     d2 = m1 - t1
+                        #     arr_MIR = mir[_x-2:_x+3, _y-2:_y+3]
+                        #     arr_TIR = tir[_x-2:_x+3, _y-2:_y+3]
+                        #     arr_Del = delta[_x-2:_x+3, _y-2:_y+3]
+                        #     avg_mir_window = np.mean(arr_MIR)
+                        #     avg_tir_window = np.mean(arr_TIR)
+                        #     avg_del_window = np.mean(arr_TIR)
+                        #     std_mir_window = np.std(arr_MIR)
+                        #     std_tir_window = np.std(arr_TIR)
+                        #     std_del_window = np.std(arr_Del)
+                        #     if m1 > avg_mir_window and d2 > avg_del_window:
+                        #         pd_records = pd_records.append([[d1, m1, t1, d2,
+                        #                                          avg_mir_window, avg_tir_window, avg_del_window,
+                        #                                          std_mir_window, std_tir_window, std_del_window,
+                        #                                          longitude_px, latitude_px]])
+                        #         count+=1
+                        #     # print "Delta: %3d | MIR: %3d  TIR: %3d" % (d1, m1, t1)
+
+                        # print '%2d %2d : %3d initial potential fire pixels' % (x, y, count)
                     else:
-                        print '%2d %d : No potential fires' % (x, y)
-
+                        # print '%2d %d : No potential fires' % (x, y)
+                        print 'No Potential Fire Pixels'
                     del g
 
         # hour += 1
-    pd_records.to_csv(pd_file)
+    # pd_records.to_csv(pd_file)
     print 'End'

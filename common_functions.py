@@ -12,6 +12,23 @@ import glob
 import numpy as np
 
 
+trans = (0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
+proj = 'PROJCS["New_Projected_Coordinate_System",' \
+       'GEOGCS["GCS_New_Geographic_Coordinate_System",' \
+       'DATUM["WGS_1984",SPHEROID["WGS_84",6378137.0,298.257223563]],' \
+       'PRIMEM["<custom>",104.5],UNIT["<custom>",0.048952]],' \
+       'PROJECTION["Lambert_Conformal_Conic_2SP"],' \
+       'PARAMETER["False_Easting",104.5],' \
+       'PARAMETER["False_Northing",0.0],' \
+       'PARAMETER["Central_Meridian",104.5],' \
+       'PARAMETER["Standard_Parallel_1",60.0],' \
+       'PARAMETER["Standard_Parallel_2",60.0],' \
+       'PARAMETER["Scale_Factor",1.0],' \
+       'PARAMETER["Latitude_Of_Origin",0.0],' \
+       'UNIT["<custom>",5000.0]]'
+
+
+
 def where_are_the_locations():
     temp_geo_dir = '/home2/FY2G/NOM_ITG_2288_2288(0E0N)_LE/'  # 'because of the error of geo files/temporally'
     geofile = temp_geo_dir + 'NOM_ITG_2288_2288(0E0N)_LE.dat'
@@ -57,7 +74,7 @@ def starrays(data, min, max):
     return req
 
 
-def image_preprocessing(inputfile, outdir):
+def image_preprocessing(inputfile):
     g = gdal.Open(inputfile)
     MIR_original = g.GetRasterBand(4).ReadAsArray()
     TIR_original = g.GetRasterBand(1).ReadAsArray()
