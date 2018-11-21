@@ -7,6 +7,9 @@
 # @Software: PyCharm
 
 import gdal
+import os
+import glob
+import numpy as np
 
 
 def where_are_the_locations():
@@ -46,5 +49,57 @@ def arr2TIFF(im_data, im_geotrans, im_proj, im_file, im_bands):
             dataset.GetRasterBand(i+1).WriteArray(im_data[i])
     del dataset
 
-if __name__ == '__main__':
-    where_are_the_locations()
+
+def starrays(data, min, max):
+    req_1 = 1 * np.greater_equal(data, min)
+    req_2 = 1 * np.less_equal(data, max)
+    req = 1 * np.equal(req_1+req_2, 2)
+    return req
+
+
+def image_preprocessing(inputfile, outdir):
+    g = gdal.Open(inputfile)
+    MIR_original = g.GetRasterBand(4).ReadAsArray()
+    TIR_original = g.GetRasterBand(1).ReadAsArray()
+    DELTA_original = MIR_original - TIR_original
+
+    MIR = MIR_original[2:-2, 2:-2]
+    TIR = TIR_original[2:-2, 2:-2]
+
+    delta = MIR - TIR
+
+    req_MIR = starrays(MIR, 290, 350)
+
+    req_TIR = starrays(TIR, 270, 350)
+
+    req_delta = 1 * np.greater_equal(delta, 10)
+    reqs_basic = 1 * np.equal(req_MIR + req_TIR + req_delta, 3)
+
+    req_MIR_new = 1 * np.greater_equal(MIR, np.mean(MIR[req_MIR]))
+    req_TIR_new = 1 * np.greater_equal(TIR, np.mean(TIR[req_TIR]))
+    req_IR = 1 * np.equal(req_MIR_new + req_TIR_new, 2)
+    reqs_dynamic = 1 * np.equal(req_IR + reqs_basic, 2)
+    locs = np.where(reqs_dynamic == True)
+    length = np.sum(reqs_dynamic)
+    outfile = np.zeros((180, 180))
+    if length > 0:
+        for i in iter(range(length)):
+            x, y = locs[0][i] + 2, locs[1][i] + 2
+            mir_array = MIR_original[x - 2:x + 3, y - 2:y + 3]
+            tir_array = TIR_original[x - 2:x + 3, y - 2:y + 3]
+            delta_array = mir_array - tir_array
+            validpx = starrays(mir_array, 290, 350) == 1
+            mir_avg = np.mean(mir_array[validpx])
+            mir_std = np.std(mir_array[validpx])
+            delta_avg = np.mean(delta_array[validpx])
+            delta_std = np.std(delta_array[validpx])
+            if MIR_original[x, y] > mir_avg + 0.5 * mir_std and \
+                            DELTA_original[x, y] > delta_avg + 0.5 * delta_std:
+                outfile[x, y] = 1
+
+    return outfile
+
+
+
+# if __name__ == '__main__':
+#     where_are_the_locations()

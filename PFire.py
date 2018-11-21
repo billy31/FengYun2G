@@ -49,7 +49,7 @@ if __name__ == '__main__':
         name_pre = 'FY2G_FDI_ALL_NOM_'
         name_sub1 = '_Delta_MOMS_MSTO.tif'
         print date
-        for x in iter([1,2,3,4,5]):
+        for x in iter([]):
             for y in iter([6,7,8,9,10]):
                 subs = x.__str__().zfill(2) + y.__str__().zfill(2)
                 os.chdir(stable_dir + subs + '/')
