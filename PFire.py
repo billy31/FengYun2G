@@ -24,7 +24,7 @@ from common_functions import image_preprocessing
 from common_functions import trans
 from common_functions import proj
 # import pandas as pd
-image_preprocessing()
+# image_preprocessing()
 
 if __name__ == '__main__':
     temp_geo_dir = '/home2/FY2G/NOM_ITG_2288_2288(0E0N)_LE/'  # 'because of the error of geo files/temporally'
