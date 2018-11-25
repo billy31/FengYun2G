@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # pd_records = pd.DataFrame([])
     # pd_file = '/home6/FY2G/pfire_list_Aust.csv'
     # while flag:
-    for hour in iter([5,6,7]):
+    for hour in iter([5, 6, 7]):
         date = begindate + datetime.timedelta(hours=hour)
         name_pre = 'FY2G_FDI_ALL_NOM_'
         name_sub1 = '_Stable_MIR.tif'
