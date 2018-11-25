@@ -25,6 +25,9 @@ import matplotlib.pyplot as plt
 # % matplotlib qt
 # from Revision_FY2G import _Read_Init
 from common_functions import arr2TIFF
+from common_functions import starrays
+from common_functions import trans
+from common_functions import proj
 
 
 def generate_file_name(x, y, date, hour, subfix=''):
@@ -36,6 +39,51 @@ def generate_file_name(x, y, date, hour, subfix=''):
     return name
 
 
+def get_stable_array_new(begin, end, db, x, y, Hour, duration):
+
+    aim_T0 = db[end].split('_')[4]+'_'+db[end].split('_')[5]
+    aim_T1 = datetime.datetime.strptime(aim_T0, '%Y%m%d_%H%M')
+    total_dlt = datetime.timedelta(days=duration)
+
+    mir = np.zeros((duration, w, l))
+    tir = np.zeros((duration, w, l))
+    count = 0
+    for name in db[begin:end]:
+        name_str = name.split('_')[5]
+        if name_str == aim_T0.split('_')[-1]:
+            g = gdal.Open(name)
+            # obj_T1 = datetime.datetime.strptime(name.split('_')[4], '%Y%m%d')
+            # dlt_T = aim_T1 - obj_T1
+            # nums_id = (total_dlt - dlt_T).days
+            tir[count, :, :] = g.GetRasterBand(1).ReadAsArray()
+            mir[count, :, :] = g.GetRasterBand(4).ReadAsArray()
+            count += 1
+            del g
+
+    _w1 = 2 if x == 0 else 0
+    _w2 = w-2 if x == 12 else w
+    _l1 = 2 if y == 0 else 0
+    _l2 = l-2 if y == 12 else l
+    stable_arrays = np.zeros((w, l))
+
+    for _x in iter(range(_w1, _w2)):
+        for _y in iter(range(_l1, _l2)):
+            value_mir = mir[:, _x, _y]
+            value_tir = tir[:, _x, _y]
+            # low_end_tir = np.mean(value_tir[np.nonzero(value_tir)])
+            # stable_arrays[_x, _y] = np.mean(value_mir[np.where(value_tir > low_end_tir)])
+            try:
+                mean_value = np.mean(value_mir[np.where(starrays(value_tir, 270, 360))])
+                # if mean_value <= 296:
+                #     print mean_value
+            except:
+                mean_value = 0
+            else:
+                stable_arrays[_x, _y] = mean_value
+
+    return stable_arrays
+
+
 def get_stable_array(begin, end, db, x, y, Hour, duration):
     aim_T0 = db[end].split('_')[4]+'_'+db[end].split('_')[5]
     aim_T1 = datetime.datetime.strptime(aim_T0, '%Y%m%d_%H%M')
@@ -45,14 +93,17 @@ def get_stable_array(begin, end, db, x, y, Hour, duration):
     tir = np.zeros((24 * duration, w, l))
     for _iD in iter(db[begin:end]):
         obj_T0 = _iD.split('_')[4]+'_' + _iD.split('_')[5]
-        obj_T1 = datetime.datetime.strptime(obj_T0, '%Y%m%d_%H%M')
-        dlt_T = aim_T1 - obj_T1
-        nums_id = (total_dlt - dlt_T).days * 24 + (total_dlt - dlt_T).seconds / 3600
-        # existing_list[nums_id] = 1
-        g = gdal.Open(_iD)
-        tir[nums_id, :, :] = g.GetRasterBand(1).ReadAsArray()
-        mir[nums_id, :, :] = g.GetRasterBand(4).ReadAsArray()
-        del g
+        if _iD.split('_')[5][-2:] == '30':
+            continue
+        else:
+            obj_T1 = datetime.datetime.strptime(obj_T0, '%Y%m%d_%H%M')
+            dlt_T = aim_T1 - obj_T1
+            nums_id = (total_dlt - dlt_T).days * 24 + (total_dlt - dlt_T).seconds / 3600
+            # existing_list[nums_id] = 1
+            g = gdal.Open(_iD)
+            tir[nums_id, :, :] = g.GetRasterBand(1).ReadAsArray()
+            mir[nums_id, :, :] = g.GetRasterBand(4).ReadAsArray()
+            del g
 
     _w1 = 2 if x == 0 else 0
     _w2 = w-2 if x == 12 else w
@@ -149,9 +200,9 @@ def generate_ts_data(db, x, y, date, duration=10, hour=0):
             print e.__str__()
             return 0
         else:
-            stable_array = get_stable_array(_should_check, aim_index+1, total_list, x, y, hour, duration)
+            stable_array = get_stable_array_new(_should_check, aim_index+1, total_list, x, y, hour, duration)
 
-            print 'Generated!'
+            print 'Stable array Generated!'
             return stable_array
     else:
         print 'No enough data to process'
@@ -159,20 +210,20 @@ def generate_ts_data(db, x, y, date, duration=10, hour=0):
     return 0
 
 
-trans = (0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
-proj = 'PROJCS["New_Projected_Coordinate_System",' \
-       'GEOGCS["GCS_New_Geographic_Coordinate_System",' \
-       'DATUM["WGS_1984",SPHEROID["WGS_84",6378137.0,298.257223563]],' \
-       'PRIMEM["<custom>",104.5],UNIT["<custom>",0.048952]],' \
-       'PROJECTION["Lambert_Conformal_Conic_2SP"],' \
-       'PARAMETER["False_Easting",104.5],' \
-       'PARAMETER["False_Northing",0.0],' \
-       'PARAMETER["Central_Meridian",104.5],' \
-       'PARAMETER["Standard_Parallel_1",60.0],' \
-       'PARAMETER["Standard_Parallel_2",60.0],' \
-       'PARAMETER["Scale_Factor",1.0],' \
-       'PARAMETER["Latitude_Of_Origin",0.0],' \
-       'UNIT["<custom>",5000.0]]'
+# trans = (0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
+# proj = 'PROJCS["New_Projected_Coordinate_System",' \
+#        'GEOGCS["GCS_New_Geographic_Coordinate_System",' \
+#        'DATUM["WGS_1984",SPHEROID["WGS_84",6378137.0,298.257223563]],' \
+#        'PRIMEM["<custom>",104.5],UNIT["<custom>",0.048952]],' \
+#        'PROJECTION["Lambert_Conformal_Conic_2SP"],' \
+#        'PARAMETER["False_Easting",104.5],' \
+#        'PARAMETER["False_Northing",0.0],' \
+#        'PARAMETER["Central_Meridian",104.5],' \
+#        'PARAMETER["Standard_Parallel_1",60.0],' \
+#        'PARAMETER["Standard_Parallel_2",60.0],' \
+#        'PARAMETER["Scale_Factor",1.0],' \
+#        'PARAMETER["Latitude_Of_Origin",0.0],' \
+#        'UNIT["<custom>",5000.0]]'
 
 if __name__ == '__main__':
 
@@ -213,47 +264,54 @@ if __name__ == '__main__':
     # #         print 1
 
     # Multiple steps
-    begindate = datetime.datetime(2016, 1, 6)
+    begindate = datetime.datetime(2016, 1, 6, hour=5)
     flag = 1
     hour = 0
     while flag:
         date = begindate + datetime.timedelta(hours=hour)
         print date
-        for x in iter(range(13)):
-            for y in iter(range(13)):
-                print x, y
-                subs = x.__str__().zfill(2) + y.__str__().zfill(2)
-                os.chdir(_in_dir + subs + '/')
-                total_list = sorted(glob.glob("FY2G_FDI*" + subs + ".tif"))
-                outdir = _out_dir + subs + '/'
-                if os.path.exists(outdir) is False:
-                    os.mkdir(outdir)
-                stable_value_mir = generate_ts_data(total_list, x, y, date.strftime("%Y%m%d"), duration=10, hour=date.hour)
-                if type(stable_value_mir) is np.int:
-                    flag = stable_value_mir
-                    break
-                else:
-                    g = gdal.Open(generate_file_name(x, y, date.strftime("%Y%m%d"), hour=date.hour))
-                    obs_TIR = g.GetRasterBand(1).ReadAsArray()
-                    obs_MIR = g.GetRasterBand(4).ReadAsArray()
-
-                    value_MO_MS = obs_MIR - stable_value_mir
-                    value_MS_TO = stable_value_mir - obs_TIR
-
-                    value_X = value_MO_MS - value_MS_TO
-                    stablemirName = outdir + \
-                                    generate_file_name(x, y, date.strftime("%Y%m%d"), date.hour, 'Stable_MIR')
-                    deltaName = outdir + \
-                                generate_file_name(x, y, date.strftime("%Y%m%d"), date.hour, 'Delta_MOMS_MSTO')
-
-                    if os.path.exists(stablemirName) is False:
-                        arr2TIFF(stable_value_mir, trans, proj, stablemirName, 1)
+        if os.path.exists(_in_dir + '0000/' + generate_file_name(0, 0, date.strftime("%Y%m%d"), date.hour)) is False:
+            print date, ' No Raw Data!'
+        else:
+            for x in iter([8, 9, 10]):
+                for y in iter([9, 8, 7]):
+                    print x, y
+                    subs = x.__str__().zfill(2) + y.__str__().zfill(2)
+                    os.chdir(_in_dir + subs + '/')
+                    total_list = sorted(glob.glob("FY2G_FDI*" + subs + ".tif"))
+                    outdir = _out_dir + subs + '/'
+                    if os.path.exists(outdir) is False:
+                        os.mkdir(outdir)
+                    stable_value_mir = generate_ts_data(total_list, x, y, date.strftime("%Y%m%d"), duration=10, hour=date.hour)
+                    if type(stable_value_mir) is np.int:
+                        flag = stable_value_mir
+                        break
                     else:
-                        print "Exist!"
-                    if os.path.exists(deltaName) is False:
-                        arr2TIFF(value_X, trans, proj, deltaName, 1)
-                    else:
-                        print "Exist!"
+                        g = gdal.Open(generate_file_name(x, y, date.strftime("%Y%m%d"), hour=date.hour))
+                        obs_TIR = g.GetRasterBand(1).ReadAsArray()
+                        obs_MIR = g.GetRasterBand(4).ReadAsArray()
+
+                        value_MO_MS = obs_MIR - stable_value_mir
+                        value_MS_TO = stable_value_mir - obs_TIR
+
+                        value_X = value_MO_MS - value_MS_TO
+                        stablemirName = outdir + \
+                                        generate_file_name(x, y, date.strftime("%Y%m%d"), date.hour, 'Stable_MIR')
+                        deltaName = outdir + \
+                                    generate_file_name(x, y, date.strftime("%Y%m%d"), date.hour, 'Delta_MOMS_MSTO')
+
+                        if os.path.exists(stablemirName) is False:
+                            arr2TIFF(stable_value_mir, trans, proj, stablemirName, 1)
+                        else:
+                            print "stable value file Exist!"
+                        if os.path.exists(deltaName) is False:
+                            arr2TIFF(value_X, trans, proj, deltaName, 1)
+                        else:
+                            print "delta value file Exist!"
+
+        if hour >= 7:
+            break
         hour += 1
+
 
 

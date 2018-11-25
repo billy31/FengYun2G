@@ -92,8 +92,9 @@ def image_preprocessing(inputfile):
     req_delta = 1 * np.greater_equal(delta, 10)
     reqs_basic = 1 * np.equal(req_MIR + req_TIR + req_delta, 3)
 
-    req_MIR_new = 1 * np.greater_equal(MIR, np.mean(MIR[req_MIR]))
-    req_TIR_new = 1 * np.greater_equal(TIR, np.mean(TIR[req_TIR]))
+    req_MIR_new = 1 * np.greater_equal(MIR, np.mean(MIR[np.where(req_MIR)]))
+    req_TIR_new = 1 * np.greater_equal(TIR, np.mean(TIR[np.where(req_TIR)]))
+    print 'MIR AVG %-3.3f/ TIR AVG %-3.3f' % (np.mean(MIR[np.where(req_MIR)]), np.mean(TIR[np.where(req_TIR)]))
     req_IR = 1 * np.equal(req_MIR_new + req_TIR_new, 2)
     reqs_dynamic = 1 * np.equal(req_IR + reqs_basic, 2)
     locs = np.where(reqs_dynamic == True)

@@ -48,37 +48,72 @@ if __name__ == '__main__':
     # pd_records = pd.DataFrame([])
     # pd_file = '/home6/FY2G/pfire_list_Aust.csv'
     # while flag:
-    for hour in iter(range(24)):
+    for hour in iter([5,6,7]):
         date = begindate + datetime.timedelta(hours=hour)
         name_pre = 'FY2G_FDI_ALL_NOM_'
-        name_sub1 = '_Delta_MOMS_MSTO.tif'
+        name_sub1 = '_Stable_MIR.tif'
         print date
-        for x in iter([7, 8, 9, 10]):
-            for y in iter([7, 8, 9, 10]):
+        for x in iter([8, 9, 10]):
+            for y in iter([9, 8, 7]):
                 subs = x.__str__().zfill(2) + y.__str__().zfill(2)
                 os.chdir(stable_dir + subs + '/')
                 filename = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + name_sub1
                 if os.path.exists(filename) is False:
                     print 'No this file!'
                 else:
+                    origin_dirsub = origin_dir + subs + '/'
+                    filename_origin = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '.tif'
                     xadded = x * 176
                     yadded = y * 176
-                    g = gdal.Open(filename)
-                    delta = g.GetRasterBand(1).ReadAsArray()
-                    req1 = 1 * np.greater(delta, 0)
-                    len_of_locs = np.sum(req1)
+                    g1 = gdal.Open(filename)
+                    g0 = gdal.Open(origin_dirsub + filename_origin)
+                    stable = g1.GetRasterBand(1).ReadAsArray()
+                    obsmir = g0.GetRasterBand(4).ReadAsArray()
+                    obstir = g0.GetRasterBand(1).ReadAsArray()
+                    ref = g0.GetRasterBand(5).ReadAsArray()
+                    deltmt = obsmir - obstir
+                    deltms = obsmir - stable
+                    deltst = stable - obstir
+                    deltMT = deltms - deltst
+
+                    reqts1 = 1 * np.greater(deltms, 0)
+                    reqts2_1 = 1 * np.less(deltst, np.mean(deltst))
+                    reqts2_2 = 1 * np.greater_equal(deltst, 5)
+                    reqts2 = 1 * np.equal(reqts2_1 + reqts2_2, 2)
+                    reqts3 = 1 * np.greater(deltMT, 0)
+                    reqts4 = 1 * np.less(ref, 20)
+
+                    reqts = 1 * np.equal(reqts1 + reqts2 + reqts3 + reqts4, 4)
+                    # plt.imsave('/home6/FY2G/pfire/reqts.png', reqts, dpi=600)
+
+                    out_dir_pfire = out_dir + subs + '/'
+                    if os.path.exists(out_dir_pfire) is False:
+                        os.mkdir(out_dir_pfire)
+                    os.chdir(out_dir_pfire)
+
+                    outts1 = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '_MO-MS>0.tif'
+                    outts2 = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '_MS-TO<AVG.tif'
+                    outts3 = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '_MOTO-2MS>0.tif'
+                    outts4 = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '_ref<20.tif'
+
+                    arr2TIFF(reqts1, trans, proj, outts1, 1)
+                    arr2TIFF(reqts2, trans, proj, outts2, 1)
+                    arr2TIFF(reqts3, trans, proj, outts3, 1)
+                    arr2TIFF(reqts4, trans, proj, outts4, 1)
+
+
+                    len_of_locs = np.sum(reqts)
                     if len_of_locs > 0:
-                        filename_origin = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '.tif'
-                        origin_dirsub = origin_dir + subs + '/'
                         pfires = image_preprocessing(origin_dirsub + filename_origin)
-                        req2 = 1 * np.equal(pfires, 1)
-                        req = 1 * np.equal(req1 + req2, 2)
-                        out_dir_pfire = out_dir + subs + '/'
-                        if os.path.exists(out_dir_pfire) is False:
-                            os.mkdir(out_dir_pfire)
-                        os.chdir(out_dir_pfire)
+                        reqct = 1 * np.equal(pfires, 1)
+                        req = 1 * np.equal(reqts + reqct, 2)
+
                         outfile = name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '_PFIRE.tif'
+                        plt.imsave(out_dir + name_pre + date.strftime("%Y%m%d_%H%M") + '_' + subs + '_PFIRE.png',
+                                   req, cmap='Set3', dpi=600)
                         arr2TIFF(req, trans, proj, outfile, 1)
+                        print '[%2d %2d] Fire counts: %-4d ' % (x, y, np.sum(req))
+                        print '---------------------------------'
 
                         # g_origin = gdal.Open(origin_dirsub + filename_origin)
                         # tir = g_origin.GetRasterBand(1).ReadAsArray()
@@ -113,8 +148,9 @@ if __name__ == '__main__':
                         # print '%2d %2d : %3d initial potential fire pixels' % (x, y, count)
                     else:
                         # print '%2d %d : No potential fires' % (x, y)
-                        print 'No Potential Fire Pixels'
-                    del g
+                        print '[%2d %2d] Fire counts: %-4d ' % (x, y, 0)
+                        print '---------------------------------'
+                    del g0, g1
 
         # hour += 1
     # pd_records.to_csv(pd_file)
