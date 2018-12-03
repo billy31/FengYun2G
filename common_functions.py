@@ -10,7 +10,8 @@ import gdal
 import os
 import glob
 import numpy as np
-
+import datetime
+import re
 
 trans = (0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
 proj = 'PROJCS["New_Projected_Coordinate_System",' \
@@ -121,3 +122,154 @@ def image_preprocessing(inputfile):
 
 # if __name__ == '__main__':
 #     where_are_the_locations()
+
+
+def check_exist(aim, db, sub, duration=10):
+    '''
+    :param aim: date
+    :param db: existing files
+    :param duration: length of days
+    :return: data exist or not
+    '''
+    for hour in iter(range(4)):
+        _pd = aim - datetime.timedelta(days=duration, hours=hour)
+        _pd_st = 'FY2G_FDI_ALL_NOM_' + _pd.strftime('%Y%m%d_%H%M') + '_' + sub + '.tif'
+        if _pd_st in db:
+            return db.index(_pd_st)
+    return 0
+
+
+def generate_ts_data(db, x, y, filename, mask, mir, tir, duration=10):
+    '''
+    :param db: database
+    :param x: location indicators | east-west
+    :param y: location indicators | north-south
+    :param date: should be like 'YYYYMMDD'
+    :param path: the output path
+    :param duration: the set of previous days | default: 10
+    :param hour: aim hour of the day          | default: * (means all day)
+    :return:
+    '''
+    stable_arrays = np.ones((x, y))
+    if np.sum(mask) != 180**2:
+        subs = x.__str__().zfill(2) + y.__str__().zfill(2)
+        endindex = db.index(filename)
+        endtime = datetime.datetime.strptime(re.search(r'\d{8}_\d{4}', filename).group(), '%Y%m%d_%H%M')
+
+        _should_check = -1
+        _should_check = check_exist(endtime, db, subs, duration)
+        if _should_check:
+            # existing_list = np.zeros(24 * duration)
+            MIR_DAT = np.zeros((duration, 24, 180, 180))
+            TIR_DAT = np.zeros((duration, 24, 180, 180))
+            for _iD in iter(db[_should_check:endindex]):
+                if re.search('_\d{2}00_', _iD):
+                    idtime = datetime.datetime.strptime(re.search(r'\d{8}_\d{4}', _iD).group(), '%Y%m%d_%H%M')
+                    dataid_day = duration - (endtime - idtime).days
+                    dataid_day = dataid_day if idtime.hour == endtime.hour else dataid_day - 1
+                    dataid_hour = (idtime-endtime).seconds/3600
+                    g = gdal.Open(_iD)
+                    try:
+                        MIR_DAT[dataid_day, dataid_hour, :, :] = g.GetRasterBand(4).ReadAsArray()
+                        TIR_DAT[dataid_day, dataid_hour, :, :] = g.GetRasterBand(1).ReadAsArray()
+                    except:
+                        continue
+                    del g
+
+            _w1 = 2 if x == 0 else 0
+            _w2 = x - 2 if x == 12 else x
+            _l1 = 2 if y == 0 else 0
+            _l2 = y - 2 if y == 12 else y
+
+            for _x in iter(range(_w1, _w2)):
+                for _y in iter(range(_l1, _l2)):
+                    if mask[_x, _y] == 0:
+                        # same-moment
+                        m, t = mir[_x, _y], tir[_x, _y]
+                        data_valid = np.ma.masked_less_equal(MIR_DAT[:, 0, _x, _y], 290)
+                        avg_smt = np.mean(data_valid)
+                        std_smt = np.std(data_valid)
+                        top = avg_smt + 2 * std_smt
+                        # 2.58 * std_smt / np.sqrt(np.ma.count(data_valid))
+                        ts_req1 = m > top
+                        stable_arrays[_x, _y] = 0 if ts_req1 else 1
+
+        else:
+            print 'Not enough data to process'
+
+    return stable_arrays
+
+
+def contextual(mir, tir, a, b):
+    m, t = mir[a, b], tir[a, b]
+    d = m - t
+    Mir = mir[a - 2:a + 3, b - 2:b + 3]
+    Tir = tir[a - 2:a + 3, b - 2:b + 3]
+    delta_array = Mir - Tir
+    validpx = starrays(Mir, 290, 350) == 1
+    mir_avg = np.mean(Mir[validpx])
+    mir_min = np.min(Mir[validpx])
+    delta_avg = np.mean(delta_array[validpx])
+    delta_min = np.min(delta_array[validpx])
+
+    step2req1 = (m >= mir_min + 15) and (d >= delta_min + 15)
+    step2req2 = (m >= mir_avg + 5) and (d >= delta_avg + 5) and (d >= 15)
+    step2req3 = (m >= mir_avg + 2) and (m >= 330) and (d >= 15)
+    step2req4 = (m >= 335) and (d >= 15)
+
+    return step2req1, step2req2, step2req3, step2req4
+
+#
+
+
+
+
+
+# fig2 = plt.figure('fig2')
+# dataM = np.ma.masked_less_equal(MIR_DAT[:, 0, 51, 123], 270)
+# avg = np.mean(dataM)
+# std = np.std(dataM)
+# top = avg + 2.58 * std / np.sqrt(duration)
+# low = avg - 2.58 * std / np.sqrt(duration)
+# plt.axhline(top, linestyle='--', linewidth=5)
+# plt.axhline(avg, linewidth=5)
+# plt.axhline(low, linestyle='--', linewidth=5)
+#
+# plt.plot(dataM, c='r')
+# fig2.show()
+
+# import pandas as pd
+# import seaborn as sns
+# import matplotlib.pyplot as plt
+#
+# fig1 = plt.figure('fig1')
+# meanday = np.zeros(24, )
+# tmeanday = np.zeros(24, )
+# for day in iter(range(duration)):
+#     data = np.ma.masked_less_equal(MIR_DAT[day, :, 51, 123], 290)
+#     tdata = np.ma.masked_less_equal(TIR_DAT[day, :, 51, 123], 270)
+#     plt.plot(data)
+#     plt.plot(tdata)
+#
+# for hour in iter(range(24)):
+#     hour_dat = np.ma.masked_less_equal(MIR_DAT[:, hour, 51, 123], 290)
+#     thour_dat = np.ma.masked_less_equal(TIR_DAT[:, hour, 51, 123], 270)
+#     meanday[hour] = np.mean(hour_dat)
+#     std = np.std(hour_dat)
+#     top = meanday[hour] + 2.58 * std / np.sqrt(duration)
+#     low = meanday[hour] - 2.58 * std / np.sqrt(duration)
+#     pts = [[hour, hour], [low, top]]
+#     # print pts
+#     plt.plot(pts[0], pts[1], linewidth=8, c='royalblue')
+#     # plt.scatter(pts[0], pts[1], marker='x', c='b')
+#     tmeanday[hour] = np.mean(thour_dat)
+#     stdt = np.std(thour_dat)
+#     topt = tmeanday[hour] + 2.58 * stdt / np.sqrt(duration)
+#     lowt = tmeanday[hour] - 2.58 * stdt / np.sqrt(duration)
+#     ptst = [[hour, hour], [lowt, topt]]
+#     # print pts
+#     plt.plot(ptst[0], ptst[1], linewidth=8, c='crimson')
+#
+# plt.plot(meanday, linewidth=8, c='royalblue')
+# plt.plot(tmeanday, linewidth=8, c='crimson')
+# fig1.show()
