@@ -12,6 +12,8 @@ import glob
 import numpy as np
 import datetime
 import re
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 trans = (0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
 proj = 'PROJCS["New_Projected_Coordinate_System",' \
@@ -150,8 +152,9 @@ def generate_ts_data(db, x, y, filename, mask, mir, tir, duration=10):
     :param hour: aim hour of the day          | default: * (means all day)
     :return:
     '''
-    stable_arrays = np.ones((x, y))
-    if np.sum(mask) != 180**2:
+    X, Y = 180, 180
+    stable_arrays = np.ones((X, Y))
+    if np.sum(mask) != X*Y:
         subs = x.__str__().zfill(2) + y.__str__().zfill(2)
         endindex = db.index(filename)
         endtime = datetime.datetime.strptime(re.search(r'\d{8}_\d{4}', filename).group(), '%Y%m%d_%H%M')
@@ -160,8 +163,8 @@ def generate_ts_data(db, x, y, filename, mask, mir, tir, duration=10):
         _should_check = check_exist(endtime, db, subs, duration)
         if _should_check:
             # existing_list = np.zeros(24 * duration)
-            MIR_DAT = np.zeros((duration, 24, 180, 180))
-            TIR_DAT = np.zeros((duration, 24, 180, 180))
+            MIR_DAT = np.zeros((duration, 24, X, Y))
+            TIR_DAT = np.zeros((duration, 24, X, Y))
             for _iD in iter(db[_should_check:endindex]):
                 if re.search('_\d{2}00_', _iD):
                     idtime = datetime.datetime.strptime(re.search(r'\d{8}_\d{4}', _iD).group(), '%Y%m%d_%H%M')
@@ -177,9 +180,9 @@ def generate_ts_data(db, x, y, filename, mask, mir, tir, duration=10):
                     del g
 
             _w1 = 2 if x == 0 else 0
-            _w2 = x - 2 if x == 12 else x
+            _w2 = X - 2 if x == 12 else X
             _l1 = 2 if y == 0 else 0
-            _l2 = y - 2 if y == 12 else y
+            _l2 = Y - 2 if y == 12 else Y
 
             for _x in iter(range(_w1, _w2)):
                 for _y in iter(range(_l1, _l2)):
@@ -215,9 +218,9 @@ def contextual(mir, tir, a, b):
     step2req1 = (m >= mir_min + 15) and (d >= delta_min + 15)
     step2req2 = (m >= mir_avg + 5) and (d >= delta_avg + 5) and (d >= 15)
     step2req3 = (m >= mir_avg + 2) and (m >= 330) and (d >= 15)
-    step2req4 = (m >= 335) and (d >= 15)
+    # step2req4 = (m >= 335) and (d >= 15)
 
-    return step2req1, step2req2, step2req3, step2req4
+    return step2req1, step2req2, step2req3  #, step2req4
 
 #
 
