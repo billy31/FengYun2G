@@ -14,7 +14,7 @@ import datetime
 import re
 import seaborn as sns
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap as BP
+# from mpl_toolkits.basemap import Basemap as BP
 
 trans = (0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
 proj = 'PROJCS["New_Projected_Coordinate_System",' \
