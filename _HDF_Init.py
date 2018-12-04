@@ -27,10 +27,11 @@ def cal_values(cal_index, data_array):
 
 def __HDF_Init__(_in_dir='/home2/FY2G/', ##'/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/DATA/hdf/',
                  _out_dir='/home6/FY2G/subsets/', ##'/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G_Testing/',
-                 _geo_dir='/home2/FY2G/NOM_ITG_2288_2288(0E0N)_LE/NOM_ITG_2288_2288(0E0N)_LE.dat', ## '/home/lzy/figs/NOM_ITG_2288_2288(0E0N)_LE.dat'):
-                 list_of_aims=sorted(glob.glob("FY2G*20160*.hdf"))):
+                 _geo_dir='/home2/FY2G/NOM_ITG_2288_2288(0E0N)_LE/NOM_ITG_2288_2288(0E0N)_LE.dat'):## '/home/lzy/figs/NOM_ITG_2288_2288(0E0N)_LE.dat'):):
+
     SUB = 13
     os.chdir(_in_dir)
+    list_of_aims=sorted(glob.glob("FY2G*2015*.hdf"))
     hdfgdal = gdal.Open(list_of_aims[0])
     band1fygdal = gdal.Open(hdfgdal.GetSubDatasets()[6][0])
     # band2fygdal = gdal.Open(hdfgdal.GetSubDatasets()[7][0])
@@ -74,16 +75,19 @@ def __HDF_Init__(_in_dir='/home2/FY2G/', ##'/media/lzy/TOSHIBA WU FY2G_MERSI_Lan
                         fygdal = gdal.Open(hdfgdal.GetSubDatasets()[12][0])
                         full_disk[band] = fygdal.GetRasterBand(1).ReadAsArray()
                         del fygdal
+            # expelled_regions = []#temp
 
             for _x in iter(range(SUB)):
                 for _y in iter(range(SUB)):
+                    # if [_x, _y] not in
                     flag_or_geo_files = True
                     subs = _x.__str__().zfill(2) + _y.__str__().zfill(2) + '/'
                     if os.path.exists(_out_dir + subs) is False:
                         os.mkdir(_out_dir + subs)
                     _out_name = _out_dir + subs + files.split('.')[0] + '_' \
                                 + _x.__str__().zfill(2) + _y.__str__().zfill(2) + '.tif'
-                    _out_name_time = datetime.datetime.strptime(re.search(r'\d{8}_\d{4}', _out_name), '%Y%m%d_%H%M')
+                    _out_name_time = datetime.datetime.strptime(re.search(r'\d{8}_\d{4}', _out_name).group(),
+                                                                '%Y%m%d_%H%M')
                     if _out_name_time < datetime.datetime(2016, 1, 7):
                     # if _out_name is
                         subsets = np.zeros((BDS, w + 4, l + 4))
