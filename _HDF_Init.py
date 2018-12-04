@@ -15,6 +15,7 @@ import gdal
 import numpy as np
 import _Read_Init
 import matplotlib.pyplot as plt
+import re
 
 
 def cal_values(cal_index, data_array):
@@ -47,13 +48,13 @@ def __HDF_Init__(_in_dir='/home2/FY2G/', ##'/media/lzy/TOSHIBA WU FY2G_MERSI_Lan
     proj = band1fygdal.GetProjection()
 
     geogdal = gdal.Open(_geo_dir)
-    geoarr = geogdal.GetRasterBand(1).ReadAsArray()
+    lonarr = geogdal.GetRasterBand(1).ReadAsArray()
+    latarr = geogdal.GetRasterBand(2).ReadAsArray()
 
-    for _x in iter(range(SUB)):
-        for _y in iter(range(SUB)):
-            subs = _x.__str__().zfill(2) + _y.__str__().zfill(2) + '/'
-            if os.path.exists(_out_dir + subs) is False:
-                os.mkdir(_out_dir + subs)
+    # # for _x in iter(range(SUB)):
+    #     for _y in iter(range(SUB)):
+    #         # subs = _x.__str__().zfill(2) + _y.__str__().zfill(2) + '/'
+
     print 'Total files: %4d' % list_of_aims.__len__()
     for i, files in enumerate(list_of_aims):
         full_disk = np.zeros((BDS, LEN, WID))
@@ -78,12 +79,18 @@ def __HDF_Init__(_in_dir='/home2/FY2G/', ##'/media/lzy/TOSHIBA WU FY2G_MERSI_Lan
                 for _y in iter(range(SUB)):
                     flag_or_geo_files = True
                     subs = _x.__str__().zfill(2) + _y.__str__().zfill(2) + '/'
+                    if os.path.exists(_out_dir + subs) is False:
+                        os.mkdir(_out_dir + subs)
                     _out_name = _out_dir + subs + files.split('.')[0] + '_' \
                                 + _x.__str__().zfill(2) + _y.__str__().zfill(2) + '.tif'
-                    if os.path.exists(_out_name) is False:
+                    _out_name_time = datetime.datetime.strptime(re.search(r'\d{8}_\d{4}', _out_name), '%Y%m%d_%H%M')
+                    if _out_name_time < datetime.datetime(2016, 1, 7):
+                    # if _out_name is
                         subsets = np.zeros((BDS, w + 4, l + 4))
 
                         # Get the subsets with buffer
+                        r1, l1, t1, b1 = 0, w+4, 0, l+4
+                        right, left, top, bottom = 0, WID, 0, LEN
                         for band in iter(range(BDS)):
                             right = _x*w-2 if _x*w-2>=0 else 0
                             left = (_x+1)*w+2 if (_x+1)*w+2<WID else WID
@@ -101,9 +108,10 @@ def __HDF_Init__(_in_dir='/home2/FY2G/', ##'/media/lzy/TOSHIBA WU FY2G_MERSI_Lan
                             if flag_or_geo_files:
                                 _out_name_geo = _out_dir + subs + 'FY2G_ALL_' \
                                             + _x.__str__().zfill(2) + _y.__str__().zfill(2) + '_geo.dat'
-                                subsets_geo = np.zeros((w + 4, l + 4))
-                                subsets_geo[r1:l1, t1:b1] = geoarr[right:left, top:bottom]
-                                _Read_Init.arr2TIFF(subsets_geo, trans, proj, _out_name_geo, 1)
+                                subsets_geo = np.zeros((2, w + 4, l + 4))
+                                subsets_geo[0, r1:l1, t1:b1] = lonarr[right:left, top:bottom]
+                                subsets_geo[1, r1:l1, t1:b1] = latarr[right:left, top:bottom]
+                                _Read_Init.arr2TIFF(subsets_geo, trans, proj, _out_name_geo, 2)
                                 flag_or_geo_files = False
 
                         # print r1,l1, t1,b1, right,left, top,bottom

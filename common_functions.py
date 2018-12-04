@@ -14,6 +14,7 @@ import datetime
 import re
 import seaborn as sns
 import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap as BP
 
 trans = (0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
 proj = 'PROJCS["New_Projected_Coordinate_System",' \
@@ -30,6 +31,44 @@ proj = 'PROJCS["New_Projected_Coordinate_System",' \
        'PARAMETER["Latitude_Of_Origin",0.0],' \
        'UNIT["<custom>",5000.0]]'
 
+
+def lonlat2xy(trans, lon, lat):
+    x = int((lon - trans[0]) / trans[1])
+    y = int((lat - trans[3]) / trans[-1])
+    return y, x
+
+
+def imagexy2geo(trans, imagex, imagey):
+    '''
+    longitude = 经度
+    latitude = 纬度
+    '''
+    lon = trans[0] + imagey * trans[1]
+    lat = trans[3] + imagex * trans[5]
+    return lon, lat
+
+
+def get_related_modisfile(modis14files, fshort):
+    timeinfo = datetime.datetime.strptime(fshort, '%Y%m%d_%H%M')
+    year, doy, hour, minute = [int(m[7:11]) for m in modis14files], [int(m[11:14]) for m in modis14files], \
+                              [int(m[15:17]) for m in modis14files], [int(m[17:19]) for m in modis14files]
+    timelist = [datetime.datetime(year[i], 1, 1, hour[i], minute[i]) + datetime.timedelta(doy[i] - 1)
+                for i in range(modis14files.__len__())]
+    ts = np.array([abs(t - timeinfo) for t in timelist])
+    modfiles = np.array(modis14files)[np.where(ts < datetime.timedelta(days=0, hours=1, minutes=0))]
+    return modfiles
+
+
+def geo_is_in(aimpx, aimrec):
+    '''
+    :param aimpx: [经度 纬度]
+    :param aimrec: [左上经度 左上纬度 右下经度 右下纬度]
+    :return:
+    '''
+    if aimrec[0] <= aimpx[0] <= aimrec[2] and aimrec[3] <= aimpx[1] <= aimrec[1]:
+        return True
+    else:
+        return False
 
 
 def where_are_the_locations():
@@ -224,7 +263,15 @@ def contextual(mir, tir, a, b):
 
 #
 
-
+def drawmaps(subs):
+    geoname = 'FY2G_ALL_' + subs + '_geo.dat'
+    datageo = np.fromfile(geoname, dtype=np.float32, count=-1)
+    lonCenter = 104.5
+    # latlon = loc.reshape(2, 2288, 2288)
+    # lon = np.array(latlon[0] + lonCenter)
+    # lat = np.array(latlon[1])
+    # lat = np.ma.masked_values(lat, 300)
+    # lon = np.ma.masked_where(lon > 300, lon)
 
 
 
