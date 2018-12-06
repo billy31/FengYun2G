@@ -30,7 +30,7 @@ proj = 'PROJCS["New_Projected_Coordinate_System",' \
        'PARAMETER["Scale_Factor",1.0],' \
        'PARAMETER["Latitude_Of_Origin",0.0],' \
        'UNIT["<custom>",5000.0]]'
-
+lonCenter = 104.5
 
 def lonlat2xy(trans, lon, lat):
     x = int((lon - trans[0]) / trans[1])
