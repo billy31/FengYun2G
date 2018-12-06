@@ -31,7 +31,7 @@ def __HDF_Init__(_in_dir='/home2/FY2G/', ##'/media/lzy/TOSHIBA WU FY2G_MERSI_Lan
 
     SUB = 13
     os.chdir(_in_dir)
-    list_of_aims=sorted(glob.glob("FY2G*2015*.hdf"))
+    list_of_aims=sorted(glob.glob("FY2G*2016010*.hdf"))
     hdfgdal = gdal.Open(list_of_aims[0])
     band1fygdal = gdal.Open(hdfgdal.GetSubDatasets()[6][0])
     # band2fygdal = gdal.Open(hdfgdal.GetSubDatasets()[7][0])
