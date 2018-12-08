@@ -15,7 +15,7 @@ import numpy as np
 from collections import Iterable as IT
 
 
-from common_functions import arr2TIFF
+from Revision_FY2G.common_functions import arr2TIFF
 
 
 def __Init__(_in_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/NONGLT/',
@@ -41,7 +41,7 @@ def __Init__(_in_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/NONGLT/',
             subs = _x.__str__().zfill(2) + _y.__str__().zfill(2) + '/'
             if os.path.exists(_out_dir + subs) is False:
                 os.mkdir(_out_dir + subs)
-    print 'Total files: %4d' % list_of_aims.__len__()
+    print('Total files: %4d' % list_of_aims.__len__())
     for i, files in enumerate(list_of_aims):
         full_disk = np.zeros((BDS, LEN, WID))
         fygdal = gdal.Open(files)
@@ -80,8 +80,8 @@ def __Init__(_in_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/NONGLT/',
                             flag_or_geo_files = False
 
                     arr2TIFF(subsets, trans, proj, _out_name, 6)
-                    print 'File %3d Section %2d - %2d Created' % (i+1, _x, _y)
+                    print('File %3d Section %2d - %2d Created' % (i+1, _x, _y))
                 else:
-                    print 'File %3d Section %2d - %2d Exists' % (i+1, _x, _y)
+                    print('File %3d Section %2d - %2d Exists' % (i+1, _x, _y))
 
-        print '%4d files left\n' % (list_of_aims.__len__() - (i+1))
+        print('%4d files left\n' % (list_of_aims.__len__() - (i+1)))

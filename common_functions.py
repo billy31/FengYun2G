@@ -89,8 +89,8 @@ def where_are_the_locations():
             if longitude[x1, y1] >= 300 or longitude[x2, y2] >= 300:
                 continue
             else:
-                print '%2d %2d\t| north:%.3f\tsouth:%.3f\t| west:%.3f\teast:%.3f' % \
-                      (x, y, latitude[x1, y1], latitude[x2, y2], longitude[x1, y1], longitude[x2, y2])
+                print('%2d %2d\t| north:%.3f\tsouth:%.3f\t| west:%.3f\teast:%.3f' % \
+                      (x, y, latitude[x1, y1], latitude[x2, y2], longitude[x1, y1], longitude[x2, y2]))
 
 
 def arr2TIFF(im_data, im_geotrans, im_proj, im_file, im_bands):
@@ -136,7 +136,7 @@ def image_preprocessing(inputfile):
 
     req_MIR_new = 1 * np.greater_equal(MIR, np.mean(MIR[np.where(req_MIR)]))
     req_TIR_new = 1 * np.greater_equal(TIR, np.mean(TIR[np.where(req_TIR)]))
-    print 'MIR AVG %-3.3f/ TIR AVG %-3.3f' % (np.mean(MIR[np.where(req_MIR)]), np.mean(TIR[np.where(req_TIR)]))
+    print('MIR AVG %-3.3f/ TIR AVG %-3.3f' % (np.mean(MIR[np.where(req_MIR)]), np.mean(TIR[np.where(req_TIR)])))
     req_IR = 1 * np.equal(req_MIR_new + req_TIR_new, 2)
     reqs_dynamic = 1 * np.equal(req_IR + reqs_basic, 2)
     locs = np.where(reqs_dynamic == True)
@@ -209,7 +209,7 @@ def generate_ts_data(db, x, y, filename, mask, mir, tir, duration=10):
                     idtime = datetime.datetime.strptime(re.search(r'\d{8}_\d{4}', _iD).group(), '%Y%m%d_%H%M')
                     dataid_day = duration - (endtime - idtime).days
                     dataid_day = dataid_day if idtime.hour == endtime.hour else dataid_day - 1
-                    dataid_hour = (idtime-endtime).seconds/3600
+                    dataid_hour = int((idtime-endtime).seconds/3600)
                     g = gdal.Open(_iD)
                     try:
                         MIR_DAT[dataid_day, dataid_hour, :, :] = g.GetRasterBand(4).ReadAsArray()
@@ -237,7 +237,7 @@ def generate_ts_data(db, x, y, filename, mask, mir, tir, duration=10):
                         stable_arrays[_x, _y] = 0 if ts_req1 else 1
 
         else:
-            print 'Not enough data to process'
+            print('Not enough data to process')
 
     return stable_arrays
 

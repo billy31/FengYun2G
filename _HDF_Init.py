@@ -13,7 +13,7 @@ import glob
 import os
 import gdal
 import numpy as np
-import _Read_Init
+from Revision_FY2G import _Read_Init
 import matplotlib.pyplot as plt
 import re
 
@@ -56,7 +56,7 @@ def __HDF_Init__(_in_dir='/home2/FY2G/', ##'/media/lzy/TOSHIBA WU FY2G_MERSI_Lan
     #     for _y in iter(range(SUB)):
     #         # subs = _x.__str__().zfill(2) + _y.__str__().zfill(2) + '/'
 
-    print 'Total files: %4d' % list_of_aims.__len__()
+    print('Total files: %4d' % list_of_aims.__len__())
     for i, files in enumerate(list_of_aims):
         full_disk = np.zeros((BDS, LEN, WID))
         try:
@@ -119,18 +119,18 @@ def __HDF_Init__(_in_dir='/home2/FY2G/', ##'/media/lzy/TOSHIBA WU FY2G_MERSI_Lan
                                 flag_or_geo_files = False
 
                         # print r1,l1, t1,b1, right,left, top,bottom
-                        print _x.__str__().zfill(2), '  -  ',  _y.__str__().zfill(2)
-                        print 'Subsets: %4d - %4d   |   Full disk: %4d - %4d' % (r1, l1, right, left)
-                        print 'Subsets: %4d - %4d   |   Full disk: %4d - %4d' % (t1, b1, top, bottom)
+                        print(_x.__str__().zfill(2), '  -  ',  _y.__str__().zfill(2))
+                        print('Subsets: %4d - %4d   |   Full disk: %4d - %4d' % (r1, l1, right, left))
+                        print('Subsets: %4d - %4d   |   Full disk: %4d - %4d' % (t1, b1, top, bottom))
 
                         _Read_Init.arr2TIFF(subsets, trans, proj, _out_name, 6)
-                        print 'File %3d Section %2d - %2d Created' % (i+1, _x, _y)
+                        print('File %3d Section %2d - %2d Created' % (i+1, _x, _y))
                     else:
-                        print 'File %3d Section %2d - %2d Exists' % (i+1, _x, _y)
+                        print('File %3d Section %2d - %2d Exists' % (i+1, _x, _y))
 
-            print '%4d files left\n' % (list_of_aims.__len__() - (i+1))
+            print('%4d files left\n' % (list_of_aims.__len__() - (i+1)))
         except Exception as e:
-            print e.__str__()
+            print(e.__str__())
 
 if __name__ == '__main__':
     __HDF_Init__()
