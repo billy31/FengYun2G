@@ -11,6 +11,7 @@ import os
 import glob
 import numpy as np
 import datetime
+import pandas as pd
 import re
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -291,6 +292,134 @@ def drawmaps(subs):
     # lat = np.ma.masked_values(lat, 300)
     # lon = np.ma.masked_where(lon > 300, lon)
 
+
+def fengyun_ts_algorithm(_in_dir, _out_dir, date_input, hour, xranges, yranges, nospecial='none'):
+
+    if date_input.__class__ == str:
+        date_inthisalgorithm = date_input
+    else:
+        date_inthisalgorithm = date_input.astype(datetime.datetime).strftime("%Y%m%d")
+
+    stage1 = ['Masked_01_DYNAMIC_', 'Masked_02_CONTEXTUAL_', 'Masked_03_TIMES_']
+    stage2 = ['01_DYNAMIC_', '02_CONTEXTUAL_', '03_TIMES_']
+    # hour = 5
+    # x = 8
+    # y = 9
+    # subs = x.__str__().zfill(2) + y.__str__().zfill(2)
+    # for date in dates:
+
+    if os.path.exists(_out_dir + date_inthisalgorithm + '/') is False:
+        os.mkdir(_out_dir + date_inthisalgorithm + '/')
+    _out_dir = _out_dir + date_inthisalgorithm + '/'
+
+    total_firepx = []
+    if nospecial is not 'none':
+        colNames = ['YYYYMMDD', 'HHMM', 'sat', 'lat', 'lon', 'T21', 'T31', 'sample', 'FRP', 'conf', 'type']
+        total_firepxpd = pd.DataFrame(columns=colNames)
+    cmap_mask = 'RdYlBu_r'
+    for x in xranges:
+        for y in yranges:
+            fig = plt.figure(2)
+            subs = x.__str__().zfill(2) + y.__str__().zfill(2)
+            os.chdir(_in_dir + subs + '/')
+            total_list = sorted(glob.glob("FY2G_FDI*" + subs + ".tif"))
+            if os.path.exists(_out_dir + subs + '/') is False:
+                os.mkdir(_out_dir + subs + '/')
+            outpath = _out_dir + subs + '/'
+            # 1
+            fyfile = glob.glob("FY2G_FDI*" + date_inthisalgorithm + '_' + hour.__str__().zfill(2) + "00_*.tif")
+            print(fyfile)
+            if fyfile:
+                g = gdal.Open(fyfile[-1])
+                mir = g.GetRasterBand(4).ReadAsArray()
+                tir = g.GetRasterBand(1).ReadAsArray()
+                vis = g.GetRasterBand(5).ReadAsArray()
+                delta = mir - tir
+
+                step1req1 = 1 * np.greater_equal(mir, max([np.mean(mir) + 5, 310]))
+                step1req2 = 1 * np.greater_equal(mir, max([np.mean(delta) + 5, 15]))
+                step1req3 = 1 * np.less_equal(vis, 20)
+                step1req4 = 1 * np.less_equal(tir, 305)
+                step1reqs = step1req1 + step1req2 + step1req3 + step1req4
+                step1mask = 1 * np.less(step1reqs, 4)
+                sns.heatmap(mir, mask=step1mask)
+                plt.title('MIR dynamic threshold: %-4.2f \n DELTA dynamic threshold: %-4.2f' %
+                          (max([np.mean(mir) + 5, 310]), max([np.mean(delta) + 5, 15])))
+                stageout_masked = outpath + stage1[0] + date_inthisalgorithm + hour.__str__().zfill(2) + '_' + subs + '.png'
+                stageout_class = outpath + stage2[0] + date_inthisalgorithm + hour.__str__().zfill(2) + '_' + subs + '.png'
+                if os.path.exists(stageout_masked) is False:
+                    plt.savefig(stageout_masked, dpi=600)
+                if os.path.exists(stageout_class) is False:
+                    plt.imsave(stageout_class, step1mask, dpi=600, cmap=cmap_mask)
+                plt.clf()
+
+                # 2
+                expelled = [0, 1, 178, 179]
+                for a in iter(range(180)):
+                    for b in iter(range(180)):
+                        if step1mask[a, b] == 1:
+                            continue
+                        else:
+                            if a not in expelled and b not in expelled:
+                                step2req1, step2req2, step2req3 = contextual(mir, tir, a, b)
+                                if step2req1 or step2req2 or step2req3:  # or step2req4:
+                                    step1mask[a, b] = 0
+                                else:
+                                    step1mask[a, b] = 1
+                            else:
+                                step1mask[a, b] = 1
+                sns.heatmap(mir, mask=step1mask)
+                plt.title('After contextual method')
+                stageout_masked = outpath + stage1[1] + date_inthisalgorithm + hour.__str__().zfill(2) + '_' + subs + '.png'
+                stageout_class = outpath + stage2[1] + date_inthisalgorithm + hour.__str__().zfill(2) + '_' + subs + '.png'
+                if os.path.exists(stageout_masked) is False:
+                    plt.savefig(stageout_masked, dpi=600)
+                if os.path.exists(stageout_class) is False:
+                    plt.imsave(stageout_class, step1mask, dpi=600, cmap=cmap_mask)
+                plt.clf()
+
+                # 3
+                if np.sum(step1mask) == 180 ** 2:
+                    continue
+                else:
+                    stablearray = generate_ts_data(total_list, x, y, fyfile[-1], step1mask, mir, tir, duration=30)
+                    sns.heatmap(mir, mask=stablearray, annot=True, fmt='.1f')
+                    firepts = np.where(stablearray == 0)
+                    firecounts = firepts[0].__len__()
+                    # dm.drawmaps(subs, mir, firepts, 'gray_r')
+
+                    # output
+                    if firecounts > 0:
+                        plt.title('After ts(same-moment) method\nFire counts: %3d' % int(firecounts))
+                        stageout_masked = outpath + stage1[2] + date_inthisalgorithm + hour.__str__().zfill(2) + '_' + subs + '.png'
+                        stageout_class = outpath + stage2[2] + date_inthisalgorithm + hour.__str__().zfill(2) + '_' + subs + '.png'
+
+                        if os.path.exists(stageout_masked) is False:
+                            plt.savefig(stageout_masked, dpi=600)
+                        if os.path.exists(stageout_class) is False:
+                            plt.imsave(stageout_class, stablearray, dpi=600, cmap=cmap_mask)
+                        plt.clf()
+                        geoname = 'FY2G_ALL_' + subs + '_geo.dat'
+                        geog = gdal.Open(geoname)
+                        lon = geog.GetRasterBand(1).ReadAsArray() + lonCenter
+                        lat = geog.GetRasterBand(2).ReadAsArray()
+                        lat = np.ma.masked_equal(lat, 300)
+                        lon = np.ma.masked_equal(lon, 300)
+                        for i in iter(range(firepts[0].__len__())):
+                            locpx, locpy = firepts[0][i], firepts[1][i]
+                            lonpx, latpx = lon[locpx, locpy], lat[locpx, locpy]
+                            total_firepx.append([lonpx, latpx])
+                            if nospecial is not 'none':
+                                insertdata = pd.DataFrame([[date_inthisalgorithm, hour.__str__().zfill(2), 'FENGYUN2G',
+                                                           latpx, lonpx, mir[locpx, locpy], tir[locpx, locpy],
+                                                           0, 0, 0, 0]], columns=colNames)
+                                total_firepxpd = total_firepxpd.append(insertdata)
+
+    # for hour in [7]:
+    if nospecial is 'none':
+        return total_firepx
+    else:
+        return total_firepxpd
 
 
 # fig2 = plt.figure('fig2')
