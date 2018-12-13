@@ -422,6 +422,41 @@ def fengyun_ts_algorithm(_in_dir, _out_dir, date_input, hour, xranges, yranges, 
         return total_firepxpd
 
 
+def modis_monthly_data(_in_dir, date):
+    os.chdir(_in_dir)
+    if date.__class__ == str:
+        date_fmt = datetime.datetime.strptime(date, '%Y%m%d')
+    else:
+        date_fmt = date.astype(datetime.datetime)
+    data_str = sorted(glob.glob('*' + date_fmt.year.__str__() + date_fmt.month.__str__().zfill(2) + '*.txt'))
+    colNames = ['YYYYMMDD', 'HHMM', 'sat', 'lat', 'lon', 'T21', 'T31', 'sample', 'FRP', 'conf', 'type']
+    aimdata = pd.DataFrame(columns=colNames)
+    try:
+        data = pd.read_csv(data_str[0])
+        begin_row = 0
+        keapsearchFlag = True
+        while keapsearchFlag:
+            str_raw = data.iloc[begin_row].values[0]
+            for i in range(4):
+                str_raw = str_raw.replace('  ', ' ')
+            str_data = str_raw.split(' ')
+            str_data_fmt = datetime.datetime.strptime(str_data[0].__str__(), '%Y%m%d')
+            begin_row += 1
+
+            if str_data_fmt > date_fmt:
+                keapsearchFlag = False
+            else:
+                if str_data[0] == date_fmt.strftime('%Y%m%d'):
+                    inputdata = pd.DataFrame([str_data], columns=colNames)
+                    aimdata = aimdata.append(inputdata, ignore_index=True)
+
+            # if
+
+        return aimdata
+    except Exception as e:
+        print(e.__str__())
+        return aimdata
+
 # fig2 = plt.figure('fig2')
 # dataM = np.ma.masked_less_equal(MIR_DAT[:, 0, 51, 123], 270)
 # avg = np.mean(dataM)
