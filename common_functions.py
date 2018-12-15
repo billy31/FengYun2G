@@ -16,6 +16,7 @@ import re
 import seaborn as sns
 import matplotlib.pyplot as plt
 # from mpl_toolkits.basemap import Basemap as BP
+from Revision_FY2G import _HDF_Init as hdfx
 
 colNames = ['YYYYMMDD', 'HHMM', 'sat', 'lat', 'lon', 'T21', 'T31', 'sample', 'FRP', 'conf', 'type']
 # [x, y]
@@ -279,7 +280,30 @@ def contextual(mir, tir, a, b):
     return step2req1, step2req2, step2req3  #, step2req4
 
 
-def drawbkmaps(_in_dir, _out_dir, date_input, hour, xranges, yranges, subplot):
+def drawbkmaps_multi(_in_dir, _out_dir, date_input, hour, xranges, yranges, subplot):
+    if date_input.__class__ == str:
+        date_inthisalgorithm = date_input
+    elif date_input.__class__ == str:
+        date_inthisalgorithm = datetime.datetime.strptime(date_input, '%Y%m%d')
+    else:
+        date_inthisalgorithm = date_input.astype(datetime.datetime).strftime('%Y%m%d')
+
+    os.chdir(_in_dir)
+    try:
+        data_FULLDISK_name = sorted(glob.glob('*' + date_inthisalgorithm + '_' +
+                                              hour.__str__().zfill(2) + '00.hdf'))[0]
+        data_FULLDISK = gdal.Open(data_FULLDISK_name)
+        data_FULLDISK_subs_MIR = gdal.Open(data_FULLDISK.GetSubDatasets()[9][0])
+        data_FULLDISK_subs_CAL = gdal.Open(data_FULLDISK.GetSubDatasets()[3][0])
+        mir_FULLDISK_RAW = hdfx.cal_values(data_FULLDISK_subs_CAL.GetRasterBand(1).ReadAsArray(),
+                                           data_FULLDISK_subs_MIR.GetRasterBand(1).ReadAsArray())
+        sns.heatmap(mir_FULLDISK_RAW[np.min(xranges) * WID: (np.max(xranges) + 1) * WID,
+                           np.min(yranges) * WID: (np.max(yranges) + 1) * WID], ax=subplot)
+    except:
+        print('Error')
+
+
+def drawbkmaps_single(_in_dir, _out_dir, date_input, hour, xranges, yranges, subplot):
     if xranges.__class__ == int:
         xranges = [xranges]
     if yranges.__class__ == int:
@@ -307,6 +331,9 @@ def drawbkmaps(_in_dir, _out_dir, date_input, hour, xranges, yranges, subplot):
                 subplot.spines['right'].set_visible(False)
                 subplot.spines['bottom'].set_visible(False)
                 subplot.spines['left'].set_visible(False)
+                subplot.set_xticks([])
+                subplot.set_yticks([])
+                subplot.axis('off')
     # return
 
 
