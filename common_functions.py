@@ -17,24 +17,22 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 # from mpl_toolkits.basemap import Basemap as BP
 
-
-expelled = [[0, 0], [0, 1], [0, 2], [0, 10], [0, 11], [0, 12],
-            [1, 0], [1, 1], [1, 10], [1, 11], [1, 12],
-            [2, 0], [2, 10], [2, 11], [2, 12],
-            [3, 9], [3, 10], [3, 11], [3, 12],
-            [4, 4], [4, 10], [4, 11], [4, 12],
-            [5, 2], [5, 4], [5, 10], [5, 11], [5, 12],
-            [6, 1], [6, 2], [6, 3], [6, 4], [6, 12],
-            [7, 1], [7, 2], [7, 3], [7, 4], [7, 5],
-            [8, 2], [8, 3], [8, 4], [8, 5], [8, 6], [8, 12],
-            [9, 2], [9, 3], [9, 4], [9, 5], [9, 6], [9, 12],
-            [10, 0], [10, 1], [10, 2], [10, 3], [10, 4],
-            [10, 5], [10, 6], [10, 12],
-            [11, 0], [11, 1], [11, 2], [11, 3], [11, 4], [11, 5],
-            [11, 6], [11, 7], [11, 8], [11, 11], [11, 12],
-            [12, 0], [12, 1], [12, 2], [12, 3], [12, 4], [12, 5],
-            [12, 6], [12, 7], [12, 8], [12, 9], [12, 10],
-            [12, 11], [12, 12]]
+colNames = ['YYYYMMDD', 'HHMM', 'sat', 'lat', 'lon', 'T21', 'T31', 'sample', 'FRP', 'conf', 'type']
+# [x, y]
+workable = [[0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [0, 8], [0, 9], [0, 10],
+            [1, 2], [1, 3], [1, 4], [1, 5], [1, 8], [1, 9],
+            [2, 1], [2, 2], [2, 3], [2, 4],
+            [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [3, 5], 
+            [4, 0], [4, 1], [4, 2], [4, 3],
+            [5, 0], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5], [5, 6],
+            [6, 0], [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], [6, 6], [6, 7],
+            [7, 0], [7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 6], [7, 7], [7, 8], [7, 9], [7, 10],
+            [8, 0], [8, 1], [8, 2], [8, 3], [8, 4], [8, 5], [8, 6], [8, 7], [8, 8], [8, 9], [8, 10],
+            [9, 0], [9, 1], [9, 2], [9, 4], [9, 5], [9, 6], [9, 7], [9, 9], [9, 9], [9, 10],[9, 11],
+            [10, 6], [10, 7], [10, 8], [10, 9], [10, 10], [10, 11],
+            [11, 6], [11, 7], [11, 8], [11, 9], [11, 10],
+            [12, 7]]
+WID = int(2288 / 13)
 trans = (0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
 proj = 'PROJCS["New_Projected_Coordinate_System",' \
        'GEOGCS["GCS_New_Geographic_Coordinate_System",' \
@@ -280,23 +278,49 @@ def contextual(mir, tir, a, b):
 
     return step2req1, step2req2, step2req3  #, step2req4
 
-#
 
-def drawmaps(subs):
-    geoname = 'FY2G_ALL_' + subs + '_geo.dat'
-    datageo = np.fromfile(geoname, dtype=np.float32, count=-1)
-    lonCenter = 104.5
-    # latlon = loc.reshape(2, 2288, 2288)
-    # lon = np.array(latlon[0] + lonCenter)
-    # lat = np.array(latlon[1])
-    # lat = np.ma.masked_values(lat, 300)
-    # lon = np.ma.masked_where(lon > 300, lon)
+def drawbkmaps(_in_dir, _out_dir, date_input, hour, xranges, yranges, subplot):
+    if xranges.__class__ == int:
+        xranges = [xranges]
+    if yranges.__class__ == int:
+        yranges = [yranges]
+
+    if date_input.__class__ == str:
+        date_inthisalgorithm = date_input
+    elif date_input.__class__ == datetime.datetime:
+        date_inthisalgorithm = date_input.strftime("%Y%m%d")
+    else:
+        date_inthisalgorithm = date_input.astype(datetime.datetime).strftime("%Y%m%d")
+
+    for x in xranges:
+        for y in yranges:
+            subs = x.__str__().zfill(2) + y.__str__().zfill(2)
+            os.chdir(_in_dir + subs + '/')
+            fyfile = glob.glob("FY2G_FDI*" + date_inthisalgorithm + '_' + hour.__str__().zfill(2) + "00_*.tif")
+            print(fyfile)
+            if fyfile:
+                g = gdal.Open(fyfile[-1])
+                mir = g.GetRasterBand(4).ReadAsArray()
+                sns.heatmap(mir, ax=subplot)
+            else:
+                subplot.spines['top'].set_visible(False)
+                subplot.spines['right'].set_visible(False)
+                subplot.spines['bottom'].set_visible(False)
+                subplot.spines['left'].set_visible(False)
+    # return
 
 
 def fengyun_ts_algorithm(_in_dir, _out_dir, date_input, hour, xranges, yranges, nospecial='none'):
 
+    if xranges.__class__ == int:
+        xranges = [xranges]
+    if yranges.__class__ == int:
+        yranges = [yranges]
+
     if date_input.__class__ == str:
         date_inthisalgorithm = date_input
+    elif date_input.__class__ == datetime.datetime:
+        date_inthisalgorithm = date_input.strftime("%Y%m%d")
     else:
         date_inthisalgorithm = date_input.astype(datetime.datetime).strftime("%Y%m%d")
 
@@ -314,7 +338,6 @@ def fengyun_ts_algorithm(_in_dir, _out_dir, date_input, hour, xranges, yranges, 
 
     total_firepx = []
     if nospecial is not 'none':
-        colNames = ['YYYYMMDD', 'HHMM', 'sat', 'lat', 'lon', 'T21', 'T31', 'sample', 'FRP', 'conf', 'type']
         total_firepxpd = pd.DataFrame(columns=colNames)
     cmap_mask = 'RdYlBu_r'
     for x in xranges:
@@ -426,6 +449,8 @@ def modis_monthly_data(_in_dir, date):
     os.chdir(_in_dir)
     if date.__class__ == str:
         date_fmt = datetime.datetime.strptime(date, '%Y%m%d')
+    elif date.__class__ == datetime.datetime:
+        date_fmt = date
     else:
         date_fmt = date.astype(datetime.datetime)
     data_str = sorted(glob.glob('*' + date_fmt.year.__str__() + date_fmt.month.__str__().zfill(2) + '*.txt'))
@@ -456,6 +481,73 @@ def modis_monthly_data(_in_dir, date):
     except Exception as e:
         print(e.__str__())
         return aimdata
+
+
+def draw_ranges(x, y, geofile='/home2/FY2G/NOM_ITG_2288_2288(0E0N)_LE/NOM_ITG_2288_2288(0E0N)_LE.dat'):
+    if x.__class__ == int:
+        x = [x]
+    else:
+        x = list(x)
+    if y.__class__ == int:
+        y = [y]
+    else:
+        y = list(y)
+
+    xmin = min(x)
+    xmax = max(x) + 1
+    ymin = min(y)
+    ymax = max(y) + 1
+
+    geog = gdal.Open(geofile)
+    lon = geog.GetRasterBand(1).ReadAsArray() + lonCenter
+    lat = geog.GetRasterBand(2).ReadAsArray()
+    # lat = np.ma.masked_equal(lat, 300)
+    # lon = np.ma.masked_equal(lon, 300+lonCenter)
+
+    LON = lon[xmin * WID:xmax * WID, ymin * WID:ymax * WID]
+    LAT = lat[xmin * WID:xmax * WID, ymin * WID:ymax * WID]
+    lllon, lllat, urlon, urlat = LON[-1, 0], LAT[-1, 0], LON[0, -1], LAT[0, -1]
+    if lllon == 300+lonCenter:
+        lllon = np.min(np.ma.masked_greater_equal(LON, 300))
+    if lllat == 300:
+        lllat = np.min(np.ma.masked_greater_equal(LAT, 300))
+    if urlon == 300+lonCenter:
+        urlon = np.max(np.ma.masked_greater_equal(LON, 300))
+    if urlat == 300:
+        urlat = np.max(np.ma.masked_greater_equal(LAT, 300))
+
+    return lllon, lllat, urlon, urlat
+
+
+def px_bounding(pixel, resolutions, ratio=1.5):
+
+    lonpx, latpx = pixel
+    resolutionx, resolutiony = resolutions[0], resolutions[1]
+    lllon = lonpx - ratio * resolutionx
+    lllat = latpx - ratio * resolutiony
+    urlon = lonpx + ratio * resolutionx
+    urlat = latpx + ratio * resolutiony
+
+    return lllon, lllat, urlon, urlat
+
+
+def check_inside(polygon, point):
+    flag = False
+    if polygon[0] <= point[0] <= polygon[2] and polygon[1] <= point[1] <= polygon[3]:
+        flag = True
+    return flag
+
+
+def validation(fypxRange, modfires, modfireflag):
+    fyfireflag = False
+    for modID, modF in enumerate(modfires):
+        if check_inside(fypxRange, modF):
+            fyfireflag = True
+            modfireflag[modID] = 1
+    return modfireflag, fyfireflag
+
+
+
 
 # fig2 = plt.figure('fig2')
 # dataM = np.ma.masked_less_equal(MIR_DAT[:, 0, 51, 123], 270)
