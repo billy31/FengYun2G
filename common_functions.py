@@ -17,13 +17,14 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 # from mpl_toolkits.basemap import Basemap as BP
 from Revision_FY2G import _HDF_Init as hdfx
+import statsmodels.tsa.kalmanf.kalmanfilter as k
 
 colNames = ['YYYYMMDD', 'HHMM', 'sat', 'lat', 'lon', 'T21', 'T31', 'sample', 'FRP', 'conf', 'type']
 # [x, y]
 workable = [[0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [0, 8], [0, 9], [0, 10],
             [1, 2], [1, 3], [1, 4], [1, 5], [1, 8], [1, 9],
             [2, 1], [2, 2], [2, 3], [2, 4],
-            [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [3, 5], 
+            [3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [3, 5],
             [4, 0], [4, 1], [4, 2], [4, 3],
             [5, 0], [5, 1], [5, 2], [5, 3], [5, 4], [5, 5], [5, 6],
             [6, 0], [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], [6, 6], [6, 7],
@@ -49,6 +50,52 @@ proj = 'PROJCS["New_Projected_Coordinate_System",' \
        'PARAMETER["Latitude_Of_Origin",0.0],' \
        'UNIT["<custom>",5000.0]]'
 lonCenter = 104.5
+
+def kalman_testing(z, begin_P = 1.0, begin_kalman=25, x = 23.5, n_iter = 100, Q = 4e-4,  R = 0.2**2):
+    '''
+
+    :param z: 测量值
+    :param begin_P: 初始估计方差
+    :param begin_kalman: 初始值
+    :param Q: 测量时的方差
+    :param R: 预测时的的方差
+    :param x: 真实value
+    :param n_iter: times
+    :return:
+    '''
+    sz = (n_iter,)
+    #
+    # z = np.random.normal(x,0.2,size=sz)  #
+
+
+    #allocate apace for arrays
+    state_kalman = np.zeros(sz)     # a posteri estimate of x 估计值
+    state_pre = np.zeros(sz)     # a priori estimate of x     预测值
+    P = np.zeros(sz)             # a posteri error estimate
+    Pminus = np.zeros(sz)        # a priori error estimate   系统误差
+    K = np.zeros(sz)             # gain or blending factor
+
+
+    state_kalman[0] = begin_kalman     #
+    P[0] = begin_P               #
+
+    for k in range(1,n_iter):
+        #time update
+        state_pre[k] = state_kalman[k-1]    #根据上一个卡尔曼估计值，直接预测，就是原来的值保持不变
+        Pminus[k] = P[k-1] + Q              # 存在预测误差
+
+
+        K[k] = Pminus[k]/(Pminus[k] + R)  # kalman 增益
+        state_kalman[k] = state_pre[k] + K[k]*(z[k] - state_pre[k])   #估计值（权重不一样）
+        P[k] = (1-K[k])*Pminus[k]
+        if k==n_iter-1:
+            pre = state_kalman[-1]
+            Px = P[k-1] + Q
+            Kx = Px/(Px+R)
+            newstate = pre + Kx*(z[-1]-pre)
+
+    return state_kalman
+
 
 def lonlat2xy(trans, lon, lat):
     x = int((lon - trans[0]) / trans[1])
@@ -304,10 +351,10 @@ def drawbkmaps_multi(_in_dir, _out_dir, date_input, hour, xranges, yranges, subp
 
 
 def drawbkmaps_single(_in_dir, _out_dir, date_input, hour, xranges, yranges, subplot):
-    if xranges.__class__ == int:
-        xranges = [xranges]
-    if yranges.__class__ == int:
-        yranges = [yranges]
+    # if xranges.__class__ == int:
+    #     xranges = [xranges]
+    # if yranges.__class__ == int:
+    #     yranges = [yranges]
 
     if date_input.__class__ == str:
         date_inthisalgorithm = date_input
@@ -316,24 +363,29 @@ def drawbkmaps_single(_in_dir, _out_dir, date_input, hour, xranges, yranges, sub
     else:
         date_inthisalgorithm = date_input.astype(datetime.datetime).strftime("%Y%m%d")
 
-    for x in xranges:
-        for y in yranges:
-            subs = x.__str__().zfill(2) + y.__str__().zfill(2)
-            os.chdir(_in_dir + subs + '/')
-            fyfile = glob.glob("FY2G_FDI*" + date_inthisalgorithm + '_' + hour.__str__().zfill(2) + "00_*.tif")
-            print(fyfile)
-            if fyfile:
-                g = gdal.Open(fyfile[-1])
-                mir = g.GetRasterBand(4).ReadAsArray()
-                sns.heatmap(mir, ax=subplot)
-            else:
-                subplot.spines['top'].set_visible(False)
-                subplot.spines['right'].set_visible(False)
-                subplot.spines['bottom'].set_visible(False)
-                subplot.spines['left'].set_visible(False)
-                subplot.set_xticks([])
-                subplot.set_yticks([])
-                subplot.axis('off')
+    # for x in xranges:
+    #     for y in yranges:
+    x = xranges
+    y = yranges
+
+    subplot.set_xticks([])
+    subplot.set_yticks([])
+    subplot.axis('off')
+
+    cmap = 'RdBu_r'
+    subs = x.__str__().zfill(2) + y.__str__().zfill(2)
+    os.chdir(_in_dir + subs + '/')
+    fyfile = glob.glob("FY2G_FDI*" + date_inthisalgorithm + '_' + hour.__str__().zfill(2) + "00_*.tif")
+    print(fyfile)
+    if fyfile:
+        g = gdal.Open(fyfile[-1])
+        mir = g.GetRasterBand(4).ReadAsArray()
+        sns.heatmap(mir, ax=subplot, cmap=cmap, cbar=False)
+    else:
+        subplot.spines['top'].set_visible(False)
+        subplot.spines['right'].set_visible(False)
+        subplot.spines['bottom'].set_visible(False)
+        subplot.spines['left'].set_visible(False)
     # return
 
 
