@@ -13,9 +13,8 @@ import os
 import gdal
 import numpy as np
 from collections import Iterable as IT
-
-
-from Revision_FY2G.common_functions import arr2TIFF
+from Revision_FY2G import common_functions as cf
+# from Revision_FY2G.common_functions import arr2TIFF
 
 
 def __Init__(_in_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/NONGLT/',
@@ -76,10 +75,10 @@ def __Init__(_in_dir='/media/lzy/TOSHIBA WU FY2G_MERSI_Landsat/FY2G/NONGLT/',
                                         + _x.__str__().zfill(2) + _y.__str__().zfill(2) + '_geo.dat'
                             subsets_geo = np.zeros((w + 4, l + 4))
                             subsets_geo[r1:l1, t1:b1] = geoarr[right:left, top:bottom]
-                            arr2TIFF(subsets_geo, trans, proj, _out_name_geo, 1)
+                            cf.arr2TIFF(subsets_geo, trans, proj, _out_name_geo, 1)
                             flag_or_geo_files = False
 
-                    arr2TIFF(subsets, trans, proj, _out_name, 6)
+                    cf.arr2TIFF(subsets, trans, proj, _out_name, 6)
                     print('File %3d Section %2d - %2d Created' % (i+1, _x, _y))
                 else:
                     print('File %3d Section %2d - %2d Exists' % (i+1, _x, _y))

@@ -34,6 +34,20 @@ workable = [[0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [0, 8], [0, 9], [0, 10],
             [10, 6], [10, 7], [10, 8], [10, 9], [10, 10], [10, 11],
             [11, 6], [11, 7], [11, 8], [11, 9], [11, 10],
             [12, 7]]
+
+to_test = [[1, 4], [1, 5], [1, 6], [1, 7], [1, 8],
+           [2, 3], [2, 4], [2, 5], [2, 6], [2, 7], [2, 8], [2, 9],
+           [3, 2], [3, 3], [3, 4], [3, 5], [3, 6], [3, 7], [3, 8], [3, 9], [3, 10],
+           [4, 2], [4, 3], [4, 4], [4, 5], [4, 6], [4, 7], [4, 8], [4, 9], [4, 10],
+           [5, 2], [5, 3], [5, 4], [5, 5], [5, 6], [5, 7], [5, 8], [5, 9], [5, 10],
+           [6, 2], [6, 3], [6, 4], [6, 5], [6, 6], [6, 7], [6, 8], [6, 9], [6, 10],
+           [7, 2], [7, 3], [7, 4], [7, 5], [7, 6], [7, 7], [7, 8], [7, 9], [7, 10],
+           [8, 2], [8, 3], [8, 4], [8, 5], [8, 6], [8, 7], [8, 8], [8, 9], [8, 10],
+           [9, 2], [9, 3], [9, 4], [9, 5], [9, 6], [9, 7], [9, 9], [9, 9], [9, 10],
+           [10, 3], [10, 4], [10, 5], [10, 6], [10, 7], [10, 8], [10, 9],
+           ]
+
+
 WID = int(2288 / 13)
 trans = (0.0, 1.0, 0.0, 0.0, 0.0, -1.0)
 proj = 'PROJCS["New_Projected_Coordinate_System",' \
@@ -64,17 +78,13 @@ def kalman_testing(z, begin_P = 1.0, begin_kalman=25, x = 23.5, n_iter = 100, Q 
     :return:
     '''
     sz = (n_iter,)
-    #
     # z = np.random.normal(x,0.2,size=sz)  #
-
-
     #allocate apace for arrays
     state_kalman = np.zeros(sz)     # a posteri estimate of x 估计值
     state_pre = np.zeros(sz)     # a priori estimate of x     预测值
     P = np.zeros(sz)             # a posteri error estimate
     Pminus = np.zeros(sz)        # a priori error estimate   系统误差
     K = np.zeros(sz)             # gain or blending factor
-
 
     state_kalman[0] = begin_kalman     #
     P[0] = begin_P               #
@@ -84,15 +94,14 @@ def kalman_testing(z, begin_P = 1.0, begin_kalman=25, x = 23.5, n_iter = 100, Q 
         state_pre[k] = state_kalman[k-1]    #根据上一个卡尔曼估计值，直接预测，就是原来的值保持不变
         Pminus[k] = P[k-1] + Q              # 存在预测误差
 
-
         K[k] = Pminus[k]/(Pminus[k] + R)  # kalman 增益
         state_kalman[k] = state_pre[k] + K[k]*(z[k] - state_pre[k])   #估计值（权重不一样）
         P[k] = (1-K[k])*Pminus[k]
-        if k==n_iter-1:
-            pre = state_kalman[-1]
-            Px = P[k-1] + Q
-            Kx = Px/(Px+R)
-            newstate = pre + Kx*(z[-1]-pre)
+        # if k==n_iter-1:
+        #     pre = state_kalman[-1]
+        #     Px = P[k-1] + Q
+        #     Kx = Px/(Px+R)
+        #     newstate = pre + Kx*(z[-1]-pre)
 
     return state_kalman
 
@@ -293,12 +302,13 @@ def generate_ts_data(db, x, y, filename, mask, mir, tir, duration=10):
                     if mask[_x, _y] == 0:
                         # same-moment
                         m, t = mir[_x, _y], tir[_x, _y]
-                        data_valid = np.ma.masked_less_equal(MIR_DAT[:, 0, _x, _y], 290)
+                        data_valid = np.ma.masked_less_equal(MIR_DAT[:, 0, _x, _y], 270)
                         avg_smt = np.mean(data_valid)
                         std_smt = np.std(data_valid)
                         top = avg_smt + 2 * std_smt
+                        top2 = np.max(data_valid) + 2
                         # 2.58 * std_smt / np.sqrt(np.ma.count(data_valid))
-                        ts_req1 = m > top
+                        ts_req1 = (m >= top) or (m > top2)
                         stable_arrays[_x, _y] = 0 if ts_req1 else 1
 
         else:
@@ -321,8 +331,7 @@ def contextual(mir, tir, a, b):
 
     step2req1 = (m >= mir_min + 15) and (d >= delta_min + 15)
     step2req2 = (m >= mir_avg + 5) and (d >= delta_avg + 5) and (d >= 15)
-    step2req3 = (m >= mir_avg + 2) and (m >= 330) and (d >= 15)
-    # step2req4 = (m >= 335) and (d >= 15)
+    step2req3 = (m >= mir_avg + 1.5) and (mir_avg >= 318) and (d >= 15)
 
     return step2req1, step2req2, step2req3  #, step2req4
 
@@ -350,7 +359,8 @@ def drawbkmaps_multi(_in_dir, _out_dir, date_input, hour, xranges, yranges, subp
         print('Error')
 
 
-def drawbkmaps_single(_in_dir, _out_dir, date_input, hour, xranges, yranges, subplot):
+def drawbkmaps_single(_in_dir, date_input, hour, X, Y, subplot,
+                      aimpx=None, widsize=3, annoate=False, required=None):
     # if xranges.__class__ == int:
     #     xranges = [xranges]
     # if yranges.__class__ == int:
@@ -365,8 +375,8 @@ def drawbkmaps_single(_in_dir, _out_dir, date_input, hour, xranges, yranges, sub
 
     # for x in xranges:
     #     for y in yranges:
-    x = xranges
-    y = yranges
+    x = X
+    y = Y
 
     subplot.set_xticks([])
     subplot.set_yticks([])
@@ -375,21 +385,31 @@ def drawbkmaps_single(_in_dir, _out_dir, date_input, hour, xranges, yranges, sub
     cmap = 'RdBu_r'
     subs = x.__str__().zfill(2) + y.__str__().zfill(2)
     os.chdir(_in_dir + subs + '/')
-    fyfile = glob.glob("FY2G_FDI*" + date_inthisalgorithm + '_' + hour.__str__().zfill(2) + "00_*.tif")
-    print(fyfile)
-    if fyfile:
-        g = gdal.Open(fyfile[-1])
-        mir = g.GetRasterBand(4).ReadAsArray()
-        sns.heatmap(mir, ax=subplot, cmap=cmap, cbar=False)
-    else:
-        subplot.spines['top'].set_visible(False)
-        subplot.spines['right'].set_visible(False)
-        subplot.spines['bottom'].set_visible(False)
-        subplot.spines['left'].set_visible(False)
-    # return
+    try:
+        fyfile = glob.glob("FY2G_FDI*" + date_inthisalgorithm + '_' + hour.__str__().zfill(2) + "00_*.tif")
+        if fyfile:
+            g = gdal.Open(fyfile[-1])
+            mir = g.GetRasterBand(4).ReadAsArray()
+            if aimpx:
+                aimpx_x, aimpx_y = aimpx
+                mir_to_draw = mir[aimpx_x-widsize:aimpx_x+widsize+1, aimpx_y-widsize:aimpx_y+widsize+1]
+                sns.heatmap(mir_to_draw, ax=subplot, cmap=cmap, cbar=False, annot=annoate, fmt='.2f')
+            else:
+                sns.heatmap(mir, ax=subplot, cmap=cmap, cbar=False)
+        else:
+            subplot.spines['top'].set_visible(False)
+            subplot.spines['right'].set_visible(False)
+            subplot.spines['bottom'].set_visible(False)
+            subplot.spines['left'].set_visible(False)
+    except:
+        print('No file')
+
+    if required:
+        return np.average(mir), np.std(mir)
 
 
-def fengyun_ts_algorithm(_in_dir, _out_dir, date_input, hour, xranges, yranges, nospecial='none'):
+def fengyun_ts_algorithm(_in_dir, _out_dir, date_input, hour, xranges, yranges,
+                         duration=30, geoxy=None, nospecial=None, getvalues=False):
 
     if xranges.__class__ == int:
         xranges = [xranges]
@@ -416,9 +436,10 @@ def fengyun_ts_algorithm(_in_dir, _out_dir, date_input, hour, xranges, yranges, 
     _out_dir = _out_dir + date_inthisalgorithm + '/'
 
     total_firepx = []
-    if nospecial is not 'none':
+    if nospecial:
         total_firepxpd = pd.DataFrame(columns=colNames)
     cmap_mask = 'RdYlBu_r'
+    values_of_pxs = []
     for x in xranges:
         for y in yranges:
             fig = plt.figure(2)
@@ -439,11 +460,11 @@ def fengyun_ts_algorithm(_in_dir, _out_dir, date_input, hour, xranges, yranges, 
                 delta = mir - tir
 
                 step1req1 = 1 * np.greater_equal(mir, max([np.mean(mir) + 5, 310]))
-                step1req2 = 1 * np.greater_equal(mir, max([np.mean(delta) + 5, 15]))
+                step1req2 = 1 * np.greater_equal(delta, max([np.mean(delta) + 5, 15]))
                 step1req3 = 1 * np.less_equal(vis, 20)
-                step1req4 = 1 * np.less_equal(tir, 305)
-                step1reqs = step1req1 + step1req2 + step1req3 + step1req4
-                step1mask = 1 * np.less(step1reqs, 4)
+                # step1req4 = 1 * np.less_equal(tir, 305)
+                step1reqs = step1req1 + step1req2 + step1req3  # + step1req4
+                step1mask = 1 * np.less(step1reqs, 3)
                 sns.heatmap(mir, mask=step1mask)
                 plt.title('MIR dynamic threshold: %-4.2f \n DELTA dynamic threshold: %-4.2f' %
                           (max([np.mean(mir) + 5, 310]), max([np.mean(delta) + 5, 15])))
@@ -454,6 +475,8 @@ def fengyun_ts_algorithm(_in_dir, _out_dir, date_input, hour, xranges, yranges, 
                 if os.path.exists(stageout_class) is False:
                     plt.imsave(stageout_class, step1mask, dpi=600, cmap=cmap_mask)
                 plt.clf()
+                # print(np.sum(step1mask))
+                values_of_pxs.append(np.sum(step1mask))
 
                 # 2
                 expelled = [0, 1, 178, 179]
@@ -479,16 +502,23 @@ def fengyun_ts_algorithm(_in_dir, _out_dir, date_input, hour, xranges, yranges, 
                 if os.path.exists(stageout_class) is False:
                     plt.imsave(stageout_class, step1mask, dpi=600, cmap=cmap_mask)
                 plt.clf()
+                # print(np.sum(step1mask))
+                values_of_pxs.append(np.sum(step1mask))
 
                 # 3
                 if np.sum(step1mask) == 180 ** 2:
+                    # print(0)
+                    values_of_pxs.append(180 ** 2)
                     continue
                 else:
-                    stablearray = generate_ts_data(total_list, x, y, fyfile[-1], step1mask, mir, tir, duration=30)
+                    stablearray = generate_ts_data(total_list, x, y, fyfile[-1], step1mask, mir, tir, duration=duration)
                     sns.heatmap(mir, mask=stablearray, annot=True, fmt='.1f')
                     firepts = np.where(stablearray == 0)
                     firecounts = firepts[0].__len__()
                     # dm.drawmaps(subs, mir, firepts, 'gray_r')
+                    # print(firecounts)
+                    pxleft = 180 ** 2 - firecounts
+                    values_of_pxs.append(pxleft)
 
                     # output
                     if firecounts > 0:
@@ -511,17 +541,30 @@ def fengyun_ts_algorithm(_in_dir, _out_dir, date_input, hour, xranges, yranges, 
                             locpx, locpy = firepts[0][i], firepts[1][i]
                             lonpx, latpx = lon[locpx, locpy], lat[locpx, locpy]
                             total_firepx.append([lonpx, latpx])
-                            if nospecial is not 'none':
+                            if nospecial:
                                 insertdata = pd.DataFrame([[date_inthisalgorithm, hour.__str__().zfill(2), 'FENGYUN2G',
                                                            latpx, lonpx, mir[locpx, locpy], tir[locpx, locpy],
                                                            0, 0, 0, 0]], columns=colNames)
                                 total_firepxpd = total_firepxpd.append(insertdata)
 
+    if getvalues:
+        return values_of_pxs
+
     # for hour in [7]:
-    if nospecial is 'none':
-        return total_firepx
+    if nospecial:
+        try:
+            return total_firepxpd
+        except:
+            return pd.DataFrame(columns=colNames)
     else:
-        return total_firepxpd
+        if geoxy:
+            try:
+                return firepts
+            except:
+                return []
+
+        else:
+            return total_firepx
 
 
 def modis_monthly_data(_in_dir, date):
@@ -676,3 +719,43 @@ def validation(fypxRange, modfires, modfireflag):
 # plt.plot(meanday, linewidth=8, c='royalblue')
 # plt.plot(tmeanday, linewidth=8, c='crimson')
 # fig1.show()
+
+def generate_ts_pixel_level(db, filename, px_x, px_y, x, y, duration=30, MIR=True):
+
+    TIR = not MIR
+    pixel_data = np.zeros((duration, 24))
+
+    subs = x.__str__().zfill(2) + y.__str__().zfill(2)
+    try:
+        endindex = db.index(filename)
+        endtime = datetime.datetime.strptime(re.search(r'\d{8}_\d{4}', filename).group(), '%Y%m%d_%H%M')
+    except:
+        filename = glob.glob('*' + filename + '*.tif')[-1]
+        endindex = db.index(filename)
+        endtime = datetime.datetime.strptime(re.search(r'\d{8}_\d{4}', filename).group(), '%Y%m%d_%H%M')
+
+    _should_check = -1
+    _should_check = check_exist(endtime, db, subs, duration)
+    if _should_check:
+        for _iD in iter(db[_should_check:endindex]):
+            if re.search('_\d{2}00_', _iD):
+                idtime = datetime.datetime.strptime(re.search(r'\d{8}_\d{4}', _iD).group(), '%Y%m%d_%H%M')
+                dataid_day = duration - (endtime - idtime).days
+                dataid_day = dataid_day if idtime.hour == endtime.hour else dataid_day - 1
+                dataid_hour = int((idtime-endtime).seconds/3600)
+                g = gdal.Open(_iD)
+                try:
+                    if MIR:
+                        MIR_DAT = g.GetRasterBand(4).ReadAsArray()
+                        pixel_data[dataid_day, dataid_hour] = MIR_DAT[px_x, px_y]
+                    if TIR:
+                        TIR_DAT = g.GetRasterBand(1).ReadAsArray()
+                        pixel_data[dataid_day, dataid_hour] = TIR_DAT[px_x, px_y]
+                except:
+                    continue
+                del g
+
+    else:
+        print('Not enough data to process')
+
+    return pixel_data
